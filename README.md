@@ -1,55 +1,104 @@
-# Emo Andro (Web PWA)
+# Emo Andro
 
-A lightweight web-based desktop assistant pet designed for Android and desktop browsers.
+Emo Andro is a lightweight web desktop pet built as a PWA for Android phones and desktop browsers.  
+It renders expressive robot-style eyes, reacts to touch/motion/audio, and can run fullscreen as a digital companion.
 
-## Features
+## Highlights
 
-- Animated eye expressions and blinking
-- 16 eye emotion presets based on your reference sprite sheet
-- Mouse/touch tracking with idle drift
-- Touch scrub "giggle" reaction
-- Low battery visual state (when supported by browser)
-- Optional mic-reactive eye movement
-- Fullscreen mode support from manifest + in-app button
-- Installable as a PWA with offline cache
+- 16+ animated eye emotion states inspired by your sprite reference
+- Smooth idle behavior with random expression changes and blinking
+- Mouse and touch horizontal tracking
+- Scrub-to-giggle interaction
+- Microphone-reactive glow mode (tap to enable)
+- Low-battery visual tint (when Battery API is available)
+- Installable PWA with offline cache and update-safe service worker
+- Portrait and landscape rotation enabled
+
+## Emotion Set
+
+Current emotion classes:
+
+- `emotion-neutral`
+- `emotion-sleepy`
+- `emotion-happy`
+- `emotion-dead`
+- `emotion-angry`
+- `emotion-yawn`
+- `emotion-arc-up`
+- `emotion-side-eye`
+- `emotion-evil`
+- `emotion-dizzy-line`
+- `emotion-tilted`
+- `emotion-closed-smile`
+- `emotion-squeeze`
+- `emotion-tiny`
+- `emotion-spiral`
+- `emotion-love`
+- `emotion-wink`
+- `emotion-wide`
+
+## Tech Stack
+
+- HTML (`index.html`) for app shell
+- CSS (`styles.css`) for visual system and emotion styles
+- Vanilla JS (`app.js`) for interactions and runtime behavior
+- Web App Manifest (`manifest.webmanifest`) for install metadata
+- Service Worker (`sw.js`) for caching and offline support
 
 ## Project Structure
 
-- `index.html` - App shell
-- `styles.css` - Styling and animations
-- `app.js` - Pet behavior logic + service worker registration
-- `manifest.webmanifest` - PWA manifest
-- `sw.js` - Offline caching service worker
-- `icons/` - PWA icons
+- `index.html` - App entry point
+- `styles.css` - Eye styles, emotion variants, controls, animations
+- `app.js` - State engine, input handling, mic logic, fullscreen logic, SW registration
+- `manifest.webmanifest` - PWA install config (fullscreen, rotation, icons)
+- `sw.js` - Cache lifecycle and fetch strategy
+- `icons/icon-192.svg` - PWA icon
+- `icons/icon-512.svg` - PWA icon
+- `README.md` - Project documentation
 
-## Run Locally
+## Local Development
 
-Service workers require `http://localhost` or HTTPS.
+Service workers require `http://localhost` (or HTTPS), not `file://`.
 
 ```bash
 cd /home/chriz3656/projects/desktopassi
 python3 -m http.server 8080
 ```
 
-Open:
+Open: `http://localhost:8080`
 
-`http://localhost:8080`
+## Android Install (PWA)
 
-## Install on Android
-
-1. Open the app URL in Chrome.
-2. Tap browser menu.
+1. Open the deployed URL in Chrome.
+2. Open browser menu.
 3. Tap `Install app` or `Add to Home screen`.
-4. Launch from home screen for standalone mode.
-5. Tap `Fullscreen` button in app if browser UI is still visible.
+4. Launch from the home screen icon.
+5. If opened in a normal browser tab, use the `Fullscreen` button once.
 
-## Updating After Changes
+## Update Flow (Important)
 
-- Service worker cache version is bumped when core files change.
-- If old assets still appear, close the app and reopen once, or uninstall/reinstall the PWA.
+When you change app assets, bump the service-worker cache name in `sw.js`:
 
-## Notes for Old Android Phones
+- Example: `emo-andro-v5` -> `emo-andro-v6`
+- Commit and deploy
+- Reopen app to activate new worker/cache
 
-- Keep screen on while using as a desk pet.
-- First launch may ask microphone permission after tapping `Enable mic reaction`.
-- Battery API support varies by browser; low-battery state may not appear on all devices.
+If old UI is still shown:
+
+1. Close the PWA completely.
+2. Reopen once or twice.
+3. If still stale, uninstall/reinstall the PWA.
+
+## Behavior Notes
+
+- Mic mode is permission-gated and starts only after user tap.
+- Battery status is browser-dependent and may not be available on all Android builds.
+- Fullscreen button auto-hides in installed standalone/fullscreen display mode.
+
+## Customization Quick Guide
+
+- Change eye size and spacing: `styles.css` `.eye` and `.eyes`
+- Tune motion sensitivity: `app.js` `updateTargetX()`
+- Tune random expression timing: `app.js` expression interval
+- Tune blink timing: `app.js` blink interval
+- Add new emotion: create CSS class + include class in `emotionClasses` in `app.js`
