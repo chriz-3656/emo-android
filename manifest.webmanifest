@@ -1,7 +1,7 @@
 {
-  "name": "KIRA Digital Pet",
-  "short_name": "KIRA Pet",
-  "description": "Web desktop assistant pet with reactive eyes and idle animations.",
+  "name": "Emo Andro",
+  "short_name": "Emo Andro",
+  "description": "Emo Andro web desktop pet with 16 reactive eye emotions and idle animations.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

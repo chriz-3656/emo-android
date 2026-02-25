@@ -1,13 +1,40 @@
 const eyes = document.getElementById("eyes");
 const micButton = document.getElementById("micButton");
 const fullscreenButton = document.getElementById("fullscreenButton");
-const stateClasses = ["listening", "angry", "sleepy", "lowBattery", "happy", "wide"];
+const emotionClasses = [
+  "emotion-neutral",
+  "emotion-sleepy",
+  "emotion-happy",
+  "emotion-dead",
+  "emotion-angry",
+  "emotion-yawn",
+  "emotion-arc-up",
+  "emotion-side-eye",
+  "emotion-evil",
+  "emotion-dizzy-line",
+  "emotion-tilted",
+  "emotion-closed-smile",
+  "emotion-squeeze",
+  "emotion-tiny",
+  "emotion-spiral",
+  "emotion-love",
+  "emotion-wink",
+  "emotion-wide"
+];
+let activeEmotion = "emotion-neutral";
+let isLowBattery = false;
 
-function setState(state) {
-  eyes.classList.remove(...stateClasses);
-  if (state) {
-    eyes.classList.add(state);
+function renderState() {
+  eyes.classList.remove(...emotionClasses, "lowBattery");
+  eyes.classList.add(activeEmotion);
+  if (isLowBattery) {
+    eyes.classList.add("lowBattery");
   }
+}
+
+function setEmotion(emotion) {
+  activeEmotion = emotion;
+  renderState();
 }
 
 function blink() {
@@ -17,14 +44,16 @@ function blink() {
   }, 150);
 }
 
+renderState();
+
 setInterval(() => {
   blink();
 }, 3000 + Math.random() * 2000);
 
-const expressions = ["", "happy", "wide", "sleepy"];
+const expressions = [...emotionClasses];
 setInterval(() => {
   const random = expressions[Math.floor(Math.random() * expressions.length)];
-  setState(random);
+  setEmotion(random);
 }, 12000);
 
 let currentX = 0;
@@ -68,10 +97,10 @@ document.addEventListener("touchmove", () => {
   scrubTimer = setTimeout(() => {
     if (scrubCount > 10) {
       eyes.classList.add("giggle");
-      setState("happy");
+      setEmotion("emotion-love");
       setTimeout(() => {
         eyes.classList.remove("giggle");
-        setState("");
+        setEmotion("emotion-neutral");
       }, 600);
     }
     scrubCount = 0;
@@ -81,9 +110,8 @@ document.addEventListener("touchmove", () => {
 if (navigator.getBattery) {
   navigator.getBattery().then((battery) => {
     function updateBattery() {
-      if (battery.level < 0.2) {
-        setState("lowBattery");
-      }
+      isLowBattery = battery.level < 0.2;
+      renderState();
     }
     battery.addEventListener("levelchange", updateBattery);
     updateBattery();
@@ -106,7 +134,7 @@ async function startMicReactiveMode() {
       const volume = data.reduce((a, b) => a + b, 0) / data.length;
 
       document.querySelectorAll(".eye").forEach((eye) => {
-        eye.style.height = `${140 + volume / 6}px`;
+        eye.style.setProperty("--voice-glow", `${60 + volume / 2}px`);
       });
 
       requestAnimationFrame(animate);

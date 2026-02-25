@@ -18,42 +18,217 @@ body {
 }
 
 .eye {
-  width: 140px;
-  height: 160px;
-  background: #00ffff;
-  border-radius: 40px;
-  box-shadow: 0 0 60px #00ffff;
+  --eye-color: #54fff3;
+  --voice-glow: 60px;
+  width: 122px;
+  height: 122px;
+  background: var(--eye-color);
+  border-radius: 24px;
+  box-shadow: 0 0 var(--voice-glow) var(--eye-color);
   transition: all 0.25s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.listening .eye {
-  background: #00aaff;
-  box-shadow: 0 0 100px #00aaff;
+.eye::before,
+.eye::after {
+  content: "";
+  position: absolute;
 }
 
-.angry .eye {
-  background: red;
-  box-shadow: 0 0 100px red;
-  transform: skewX(-12deg);
+.emotion-neutral .eye {
+  width: 122px;
+  height: 122px;
+  border-radius: 24px;
 }
 
-.sleepy .eye {
-  height: 40px;
+.emotion-sleepy .eye {
+  width: 122px;
+  height: 42px;
+  border-radius: 0 0 24px 24px;
+}
+
+.emotion-happy .eye {
+  width: 118px;
+  height: 56px;
+  border-radius: 0 0 70px 70px;
+}
+
+.emotion-dead .eye {
+  background: transparent;
+  box-shadow: 0 0 24px var(--eye-color);
+  border: 4px solid var(--eye-color);
+  color: var(--eye-color);
+}
+
+.emotion-dead .eye::before {
+  content: "X";
+  font-size: 64px;
+  font-weight: 700;
+  color: var(--eye-color);
+}
+
+.emotion-angry .eye {
+  width: 116px;
+  height: 82px;
   border-radius: 20px;
 }
 
-.lowBattery .eye {
-  background: orange;
-  box-shadow: 0 0 100px orange;
+.emotion-angry .eye:first-child {
+  transform: rotate(-8deg);
 }
 
-.happy .eye {
-  border-radius: 60px;
-  height: 120px;
+.emotion-angry .eye:last-child {
+  transform: rotate(8deg);
 }
 
-.wide .eye {
-  height: 190px;
+.emotion-yawn .eye:first-child {
+  width: 118px;
+  height: 44px;
+  border-radius: 0 0 24px 24px;
+}
+
+.emotion-yawn .eye:last-child {
+  width: 98px;
+  height: 54px;
+  border-radius: 16px;
+}
+
+.emotion-yawn .eye:last-child::before {
+  content: "Z";
+  right: -24px;
+  top: -28px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--eye-color);
+}
+
+.emotion-arc-up .eye {
+  width: 116px;
+  height: 52px;
+  border-radius: 60px 60px 0 0;
+}
+
+.emotion-side-eye .eye:first-child {
+  width: 86px;
+  height: 22px;
+  border-radius: 14px;
+}
+
+.emotion-side-eye .eye:last-child {
+  width: 110px;
+  height: 84px;
+  border-radius: 22px;
+}
+
+.emotion-evil .eye {
+  width: 116px;
+  height: 54px;
+  border-radius: 0 0 56px 56px;
+}
+
+.emotion-evil .eye:first-child {
+  transform: rotate(-4deg);
+}
+
+.emotion-evil .eye:last-child {
+  transform: rotate(4deg);
+}
+
+.emotion-dizzy-line .eye {
+  width: 96px;
+  height: 16px;
+  border-radius: 12px;
+}
+
+.emotion-dizzy-line .eye:last-child::before {
+  content: "@";
+  top: -34px;
+  right: -20px;
+  font-size: 34px;
+  color: var(--eye-color);
+}
+
+.emotion-tilted .eye:first-child {
+  transform: rotate(-8deg);
+}
+
+.emotion-tilted .eye:last-child {
+  transform: rotate(8deg);
+}
+
+.emotion-closed-smile .eye {
+  width: 92px;
+  height: 36px;
+  border-radius: 60px 60px 0 0;
+}
+
+.emotion-squeeze .eye {
+  background: transparent;
+  box-shadow: none;
+}
+
+.emotion-squeeze .eye:first-child::before {
+  content: ">";
+  font-size: 88px;
+  font-weight: 700;
+  color: var(--eye-color);
+}
+
+.emotion-squeeze .eye:last-child::before {
+  content: "<";
+  font-size: 88px;
+  font-weight: 700;
+  color: var(--eye-color);
+}
+
+.emotion-tiny .eye {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+}
+
+.emotion-spiral .eye {
+  background: transparent;
+  border: 4px solid var(--eye-color);
+}
+
+.emotion-spiral .eye::before {
+  content: "@";
+  font-size: 58px;
+  font-weight: 700;
+  color: var(--eye-color);
+}
+
+.emotion-love .eye {
+  background: transparent;
+  box-shadow: none;
+}
+
+.emotion-love .eye::before {
+  content: "♥";
+  font-size: 62px;
+  color: var(--eye-color);
+}
+
+.emotion-wink .eye:first-child {
+  width: 96px;
+  height: 18px;
+  border-radius: 12px;
+}
+
+.emotion-wink .eye:last-child {
+  width: 112px;
+  height: 88px;
+  border-radius: 22px;
+}
+
+.emotion-wide .eye {
+  width: 124px;
+  height: 156px;
+  border-radius: 26px;
 }
 
 .blink .eye {
@@ -63,6 +238,10 @@ body {
 
 .giggle {
   animation: giggleAnim 0.4s ease;
+}
+
+.lowBattery .eye {
+  --eye-color: orange;
 }
 
 .controls {

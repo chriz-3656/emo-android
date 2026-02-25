@@ -1,4 +1,4 @@
-const CACHE_NAME = "kira-pet-v3";
+const CACHE_NAME = "emo-andro-v4";
 const APP_ASSETS = [
   "./",
   "index.html",

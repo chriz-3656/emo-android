@@ -1,10 +1,11 @@
-# KIRA Digital Pet (Web PWA)
+# Emo Andro (Web PWA)
 
 A lightweight web-based desktop assistant pet designed for Android and desktop browsers.
 
 ## Features
 
 - Animated eye expressions and blinking
+- 16 eye emotion presets based on your reference sprite sheet
 - Mouse/touch tracking with idle drift
 - Touch scrub "giggle" reaction
 - Low battery visual state (when supported by browser)
