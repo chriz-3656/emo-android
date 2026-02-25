@@ -66,26 +66,18 @@ function updatePosition() {
 }
 updatePosition();
 
-function updateTargetX(clientX) {
+function getMaxMoveX() {
   const maxMove = window.innerWidth / 2 - 150;
-  targetX = ((clientX / window.innerWidth) - 0.5) * maxMove * 2;
+  return Math.max(80, maxMove);
 }
 
-document.addEventListener("mousemove", (e) => {
-  updateTargetX(e.clientX);
-});
-
-document.addEventListener("touchmove", (e) => {
-  const touch = e.touches[0];
-  if (touch) {
-    updateTargetX(touch.clientX);
-  }
-}, { passive: true });
-
-setInterval(() => {
-  const maxMove = window.innerWidth / 2 - 150;
+function scheduleRandomMove() {
+  const maxMove = getMaxMoveX();
   targetX = (Math.random() - 0.5) * maxMove * 2;
-}, 6000);
+  const nextMoveMs = 2200 + Math.random() * 3800;
+  setTimeout(scheduleRandomMove, nextMoveMs);
+}
+scheduleRandomMove();
 
 let scrubCount = 0;
 let scrubTimer;
