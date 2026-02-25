@@ -250,7 +250,10 @@ body {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
+  width: min(96vw, 900px);
 }
 
 .control-button {
@@ -265,6 +268,64 @@ body {
 
 .control-button.hidden {
   display: none;
+}
+
+.assistant-panel {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(94vw, 720px);
+  padding: 10px 12px;
+  border: 1px solid rgba(84, 255, 243, 0.25);
+  border-radius: 14px;
+  background: rgba(3, 10, 22, 0.72);
+  color: #d7f6ff;
+  backdrop-filter: blur(8px);
+}
+
+.assistant-panel p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.quick-command {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.quick-command input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #2f5469;
+  background: rgba(7, 19, 31, 0.85);
+  color: #dbf8ff;
+}
+
+#notesList {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 84px;
+  overflow-y: auto;
+}
+
+#notesList li {
+  font-size: 12px;
+  opacity: 0.95;
+  padding: 2px 0;
+}
+
+.hidden-camera {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 @keyframes giggleAnim {

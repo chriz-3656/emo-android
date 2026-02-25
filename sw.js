@@ -1,4 +1,4 @@
-const CACHE_NAME = "emo-andro-v9";
+const CACHE_NAME = "emo-andro-v10";
 const APP_ASSETS = [
   "./",
   "index.html",
@@ -67,5 +67,32 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => cachedResponse || fetch(event.request))
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const action = event.action || "";
+  let actionQuery = "";
+  if (action === "sleep") {
+    actionQuery = "?action=sleep";
+  } else if (action === "wake") {
+    actionQuery = "?action=wake";
+  } else if (action === "focus") {
+    actionQuery = "?action=focus";
+  } else if (action === "mute-mic") {
+    actionQuery = "?action=mute";
+  }
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      if (clientList.length > 0) {
+        const activeClient = clientList[0];
+        if (actionQuery && "navigate" in activeClient) {
+          return activeClient.navigate(`./${actionQuery}`).then(() => activeClient.focus());
+        }
+        return activeClient.focus();
+      }
+      return clients.openWindow(`./${actionQuery}`);
+    })
   );
 });

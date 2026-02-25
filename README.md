@@ -6,12 +6,17 @@ It renders expressive robot-style eyes, reacts to touch/audio, and runs fullscre
 ## Highlights
 
 - 16+ animated eye emotion states inspired by your sprite reference
-- Smooth idle behavior with random expression changes and blinking
-- Centered random micro-movement (stays near screen center)
-- Touch scrub-to-giggle interaction
-- 20-minute inactivity sleep mode (`sleepy`) with touch-to-wake
-- Microphone-reactive glow mode (tap to enable)
-- Low-battery visual tint (when Battery API is available)
+- Wake-word voice commands (`emo` / `andro`) with offline command packs
+- Daily routine engine (morning greeting, hydration and focus-break reminders, bedtime mode)
+- Memory + personality state persisted in `localStorage`
+- Notification assistant with action buttons (`Sleep`, `Wake`, `Focus`, `Mute Mic`)
+- Home-screen PWA shortcuts for quick actions
+- Camera presence mode (motion wakes and engages pet)
+- Ambient sound reactions + microphone glow mode
+- Context modes (`Chill`, `Focus`, `Night`) that tune movement/blink/expression behavior
+- Touch scrub-to-giggle mini interaction + feed/care points system
+- 20-minute inactivity sleep mode with touch-to-wake
+- Event-based reactions (time, battery, weather when geolocation permission is granted)
 - Installable PWA with offline cache and update-safe service worker
 - Portrait and landscape rotation enabled
 
@@ -49,13 +54,31 @@ Current emotion classes:
 ## Project Structure
 
 - `index.html` - App entry point
-- `styles.css` - Eye styles, emotion variants, controls, animations
-- `app.js` - State engine, input handling, mic logic, fullscreen logic, SW registration
+- `styles.css` - Eye styles, emotion variants, controls, dashboard panel
+- `app.js` - Assistant engine (state, routines, voice/camera, command packs, notifications)
 - `manifest.webmanifest` - PWA install config (fullscreen, rotation, icons)
-- `sw.js` - Cache lifecycle and fetch strategy
+- `sw.js` - Cache lifecycle, fetch strategy, notification action routing
 - `icons/icon-192.svg` - PWA icon
 - `icons/icon-512.svg` - PWA icon
 - `README.md` - Project documentation
+
+## Built-in Commands
+
+Voice/typed commands supported by offline rule pack:
+
+- `sleep`
+- `wake`
+- `battery`
+- `open notes`
+- `focus mode`
+- `chill mode`
+- `night mode`
+- `mute mic`
+- `unmute mic`
+- `camera on`
+- `camera off`
+- `feed`
+- `status`
 
 ## Local Development
 
@@ -92,7 +115,10 @@ If old UI is still shown:
 
 ## Behavior Notes
 
+- Voice commands require browser speech-recognition support.
+- Wake-word flow: say wake word first (`emo` or `andro`), then command.
 - Mic mode is permission-gated and starts only after user tap.
+- Camera presence mode is fully local and motion-based.
 - Battery status is browser-dependent and may not be available on all Android builds.
 - Fullscreen button auto-hides in installed standalone/fullscreen display mode.
 - First touch after sleep wakes the pet and does not trigger scrub-giggle instantly.
@@ -100,9 +126,9 @@ If old UI is still shown:
 ## Customization Quick Guide
 
 - Change eye size and spacing: `styles.css` `.eye` and `.eyes`
-- Tune centered movement range: `app.js` `getMaxMoveX()`
-- Tune movement pacing: `app.js` `scheduleRandomMove()`
+- Tune mode behavior profiles: `app.js` `modeProfiles`
 - Tune sleep timeout: `app.js` `INACTIVITY_MS`
-- Tune random expression timing: `app.js` expression interval
-- Tune blink timing: `app.js` blink interval
+- Tune command rules: `app.js` `commandPacks`
+- Tune routine schedule: `app.js` `runRoutineEngine()`
+- Tune ambient sound reactions: `app.js` `ambientEmotions`
 - Add new emotion: create CSS class + include class in `emotionClasses` in `app.js`

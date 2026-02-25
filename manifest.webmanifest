@@ -8,6 +8,28 @@
   "background_color": "#050510",
   "theme_color": "#050510",
   "orientation": "any",
+  "shortcuts": [
+    {
+      "name": "Sleep",
+      "short_name": "Sleep",
+      "url": "./?action=sleep"
+    },
+    {
+      "name": "Wake",
+      "short_name": "Wake",
+      "url": "./?action=wake"
+    },
+    {
+      "name": "Focus Mode",
+      "short_name": "Focus",
+      "url": "./?action=focus"
+    },
+    {
+      "name": "Mute Mic",
+      "short_name": "Mute",
+      "url": "./?action=mute"
+    }
+  ],
   "icons": [
     {
       "src": "icons/icon-192.svg",
