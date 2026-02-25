@@ -10,36 +10,15 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
+<body class="eye-page">
 
 <div class="eyes" id="eyes">
   <div class="eye"></div>
   <div class="eye"></div>
 </div>
 
-<div class="controls">
-  <button id="micButton" class="control-button" type="button">Sound React</button>
-  <button id="voiceButton" class="control-button" type="button">Voice Cmd</button>
-  <button id="cameraButton" class="control-button" type="button">Camera Presence</button>
-  <button id="notifyButton" class="control-button" type="button">Notify</button>
-  <button id="modeButton" class="control-button" type="button">Mode: Chill</button>
-  <button id="feedButton" class="control-button" type="button">Feed +1</button>
-  <button id="notesButton" class="control-button" type="button">Add Note</button>
-  <button id="fullscreenButton" class="control-button" type="button">Fullscreen</button>
-</div>
+<button id="navControlsButton" class="nav-controls" type="button">Controls</button>
 
-<section class="assistant-panel" id="assistantPanel">
-  <p id="statusLine">Emo Andro ready.</p>
-  <p id="moodLine">Mood: calm | Care: 0</p>
-  <p id="memoryLine">No memory entries yet.</p>
-  <div class="quick-command">
-    <input id="commandInput" type="text" placeholder="Type command e.g. sleep, wake, battery, open notes">
-    <button id="commandButton" class="control-button" type="button">Run</button>
-  </div>
-  <ul id="notesList"></ul>
-</section>
-
-<video id="cameraFeed" autoplay playsinline muted class="hidden-camera"></video>
 <script src="app.js"></script>
 
 </body>

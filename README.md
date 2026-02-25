@@ -1,24 +1,38 @@
 # Emo Andro
 
-Emo Andro is a lightweight web desktop pet built as a PWA for Android phones and desktop browsers.  
-It renders expressive robot-style eyes, reacts to touch/audio, and runs fullscreen as a digital companion.
+Emo Andro is a local-first PWA digital pet for Android and desktop.
+It now uses a two-page architecture:
 
-## Highlights
+- `index.html`: clean eye page (no control overlay)
+- `controls.html`: control and assistant actions page
 
-- 16+ animated eye emotion states inspired by your sprite reference
-- Wake-word voice commands (`emo` / `andro`) with offline command packs
-- Daily routine engine (morning greeting, hydration and focus-break reminders, bedtime mode)
-- Memory + personality state persisted in `localStorage`
-- Notification assistant with action buttons (`Sleep`, `Wake`, `Focus`, `Mute Mic`)
-- Home-screen PWA shortcuts for quick actions
-- Camera presence mode (motion wakes and engages pet)
-- Ambient sound reactions + microphone glow mode
-- Context modes (`Chill`, `Focus`, `Night`) that tune movement/blink/expression behavior
-- Touch scrub-to-giggle mini interaction + feed/care points system
-- 20-minute inactivity sleep mode with touch-to-wake
-- Event-based reactions (time, battery, weather when geolocation permission is granted)
-- Installable PWA with offline cache and update-safe service worker
-- Portrait and landscape rotation enabled
+## What Changed
+
+- Controls are separated from the eye screen to avoid overlaying visuals.
+- Eye page stays focused on pet behavior only.
+- Added a small semi-transparent `Controls` button on the eye page.
+- `Controls` button auto-hides after no touch and reappears on touch.
+- Removed unstable continuous mic-reactive open/close behavior.
+- Kept sleep logic and scrub-giggle.
+
+## Core Features
+
+- 16+ eye emotions
+- 20-minute inactivity sleep mode
+- Touch wake from sleep
+- Scrub gesture -> giggle reaction
+- Voice commands:
+  - `hey emo` or `wake` -> wake
+  - `sleep` -> sleep
+  - `chill` -> chill/random mode
+  - `focus`, `night`, `battery`, `feed`
+- Context modes: `chill`, `focus`, `night`
+- Environment-based mood shifts from:
+  - battery level
+  - weather (when enabled + permission granted)
+  - time/routine windows
+- Local memory/personality state in `localStorage`
+- PWA notifications with quick actions
 
 ## Emotion Set
 
@@ -53,32 +67,27 @@ Current emotion classes:
 
 ## Project Structure
 
-- `index.html` - App entry point
-- `styles.css` - Eye styles, emotion variants, controls, dashboard panel
-- `app.js` - Assistant engine (state, routines, voice/camera, command packs, notifications)
+- `index.html` - Eye page
+- `controls.html` - Controls/actions page
+- `styles.css` - Eye + controls-page styling
+- `app.js` - Shared state + eye engine + controls actions + routines
 - `manifest.webmanifest` - PWA install config (fullscreen, rotation, icons)
 - `sw.js` - Cache lifecycle, fetch strategy, notification action routing
 - `icons/icon-192.svg` - PWA icon
 - `icons/icon-512.svg` - PWA icon
 - `README.md` - Project documentation
 
-## Built-in Commands
+## Voice Commands
 
-Voice/typed commands supported by offline rule pack:
+Built-in voice commands run locally through browser speech recognition:
 
+- `hey emo` or `wake`
 - `sleep`
-- `wake`
+- `chill`
+- `focus`
+- `night`
 - `battery`
-- `open notes`
-- `focus mode`
-- `chill mode`
-- `night mode`
-- `mute mic`
-- `unmute mic`
-- `camera on`
-- `camera off`
 - `feed`
-- `status`
 
 ## Local Development
 
@@ -91,13 +100,21 @@ python3 -m http.server 8080
 
 Open: `http://localhost:8080`
 
+## Usage Flow
+
+1. Open app.
+2. Stay on eye page (`index.html`) for pet display.
+3. Touch screen to reveal `Controls` button.
+4. Tap `Controls` to open `controls.html`.
+5. Use actions/modes/settings, then return to eyes page.
+
 ## Android Install (PWA)
 
 1. Open the deployed URL in Chrome.
 2. Open browser menu.
 3. Tap `Install app` or `Add to Home screen`.
 4. Launch from the home screen icon.
-5. If opened in a normal browser tab, use the `Fullscreen` button once.
+5. Use controls page for settings/actions.
 
 ## Update Flow (Important)
 
@@ -115,20 +132,18 @@ If old UI is still shown:
 
 ## Behavior Notes
 
-- Voice commands require browser speech-recognition support.
-- Wake-word flow: say wake word first (`emo` or `andro`), then command.
-- Mic mode is permission-gated and starts only after user tap.
-- Camera presence mode is fully local and motion-based.
-- Battery status is browser-dependent and may not be available on all Android builds.
-- Fullscreen button auto-hides in installed standalone/fullscreen display mode.
-- First touch after sleep wakes the pet and does not trigger scrub-giggle instantly.
+- Voice recognition support varies by Android browser.
+- On some browsers, voice listening starts after first touch interaction.
+- Low battery automatically slows behavior and can force sleep on critical levels.
+- First touch while sleeping wakes the pet immediately.
+- Weather reactions need geolocation permission enabled from controls page.
+- Fullscreen button is available on controls page for browser-tab usage.
 
 ## Customization Quick Guide
 
-- Change eye size and spacing: `styles.css` `.eye` and `.eyes`
-- Tune mode behavior profiles: `app.js` `modeProfiles`
+- Tune eye visuals: `styles.css` `.eye`, `.eyes`, `emotion-*`
+- Tune nav button behavior: `styles.css` `.nav-controls` + `app.js` `showNavButton()`
 - Tune sleep timeout: `app.js` `INACTIVITY_MS`
-- Tune command rules: `app.js` `commandPacks`
-- Tune routine schedule: `app.js` `runRoutineEngine()`
-- Tune ambient sound reactions: `app.js` `ambientEmotions`
-- Add new emotion: create CSS class + include class in `emotionClasses` in `app.js`
+- Tune mode movement/blink: `app.js` `modeProfiles`
+- Tune routines/reminders: `app.js` `routineTick()`
+- Add commands: extend `processCommand()` in `app.js`

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050510">
+<title>Emo Andro Controls</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="controls-page">
+<main class="controls-layout">
+  <h1>Emo Andro Controls</h1>
+  <p id="statusLine">Ready.</p>
+  <div class="controls-grid">
+    <button id="wakeButton" class="control-button" type="button">Wake</button>
+    <button id="sleepButton" class="control-button" type="button">Sleep</button>
+    <button id="chillButton" class="control-button" type="button">Chill</button>
+    <button id="focusButton" class="control-button" type="button">Focus</button>
+    <button id="nightButton" class="control-button" type="button">Night</button>
+    <button id="feedButton" class="control-button" type="button">Feed +1</button>
+    <button id="voiceButton" class="control-button" type="button">Voice: On</button>
+    <button id="notifyButton" class="control-button" type="button">Enable Notify</button>
+    <button id="geoButton" class="control-button" type="button">Enable Weather</button>
+    <button id="fullscreenButton" class="control-button" type="button">Fullscreen</button>
+    <button id="backButton" class="control-button" type="button">Back To Eyes</button>
+  </div>
+  <div class="quick-command">
+    <input id="commandInput" type="text" placeholder="Command: sleep, wake, chill, battery...">
+    <button id="commandButton" class="control-button" type="button">Run</button>
+  </div>
+  <p id="moodLine">Mood: calm</p>
+  <p id="memoryLine">No memory yet.</p>
+  <ul id="notesList"></ul>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

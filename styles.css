@@ -11,6 +11,10 @@ body {
   font-family: Arial, sans-serif;
 }
 
+.eye-page {
+  touch-action: manipulation;
+}
+
 .eyes {
   display: flex;
   gap: 68px;
@@ -244,25 +248,13 @@ body {
   --eye-color: orange;
 }
 
-.controls {
-  position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  width: min(96vw, 900px);
-}
-
 .control-button {
-  padding: 10px 14px;
+  padding: 8px 12px;
   border: 1px solid #00aaff;
   border-radius: 999px;
   background: rgba(0, 170, 255, 0.15);
   color: #dbf8ff;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -270,29 +262,58 @@ body {
   display: none;
 }
 
-.assistant-panel {
+.nav-controls {
   position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(94vw, 720px);
-  padding: 10px 12px;
-  border: 1px solid rgba(84, 255, 243, 0.25);
-  border-radius: 14px;
-  background: rgba(3, 10, 22, 0.72);
-  color: #d7f6ff;
-  backdrop-filter: blur(8px);
+  bottom: 14px;
+  right: 14px;
+  padding: 8px 12px;
+  border: 1px solid rgba(122, 226, 255, 0.45);
+  border-radius: 999px;
+  background: rgba(6, 25, 40, 0.42);
+  color: #dbf8ff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.25s ease;
+  opacity: 0.6;
 }
 
-.assistant-panel p {
-  margin: 4px 0;
-  font-size: 13px;
+.nav-controls.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.controls-page {
+  display: block;
+  overflow: auto;
+  padding: 16px;
+}
+
+.controls-layout {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  color: #d7f6ff;
+  background: rgba(3, 10, 22, 0.7);
+  border: 1px solid rgba(84, 255, 243, 0.25);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.controls-layout h1 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
 }
 
 .quick-command {
   display: flex;
   gap: 8px;
-  margin-top: 8px;
+  margin: 10px 0;
 }
 
 .quick-command input {
@@ -316,16 +337,6 @@ body {
   font-size: 12px;
   opacity: 0.95;
   padding: 2px 0;
-}
-
-.hidden-camera {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 @keyframes giggleAnim {

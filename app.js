@@ -1,21 +1,5 @@
-const eyes = document.getElementById("eyes");
-const micButton = document.getElementById("micButton");
-const voiceButton = document.getElementById("voiceButton");
-const cameraButton = document.getElementById("cameraButton");
-const notifyButton = document.getElementById("notifyButton");
-const modeButton = document.getElementById("modeButton");
-const feedButton = document.getElementById("feedButton");
-const notesButton = document.getElementById("notesButton");
-const fullscreenButton = document.getElementById("fullscreenButton");
-const statusLine = document.getElementById("statusLine");
-const moodLine = document.getElementById("moodLine");
-const memoryLine = document.getElementById("memoryLine");
-const commandInput = document.getElementById("commandInput");
-const commandButton = document.getElementById("commandButton");
-const notesList = document.getElementById("notesList");
-const cameraFeed = document.getElementById("cameraFeed");
-
-const STORAGE_KEY = "emo-andro-state-v2";
+const STORAGE_KEY = "emo-andro-state-v3";
+const ACTION_KEY = "emo-andro-action-v1";
 const INACTIVITY_MS = 20 * 60 * 1000;
 
 const emotionClasses = [
@@ -40,26 +24,23 @@ const emotionClasses = [
 ];
 
 const modeProfiles = {
-  chill: { label: "Chill", moveMin: 14, moveMax: 32, moveDelayMin: 1200, moveDelayMax: 3200, blinkMin: 2900, blinkVar: 1900, expressionMs: 12000 },
-  focus: { label: "Focus", moveMin: 8, moveMax: 20, moveDelayMin: 1800, moveDelayMax: 3600, blinkMin: 3500, blinkVar: 2200, expressionMs: 15000 },
-  night: { label: "Night", moveMin: 4, moveMax: 12, moveDelayMin: 2400, moveDelayMax: 4200, blinkMin: 4800, blinkVar: 2600, expressionMs: 18000 }
-};
-
-const ambientEmotions = {
-  quiet: ["emotion-sleepy", "emotion-closed-smile", "emotion-yawn"],
-  noisy: ["emotion-wide", "emotion-angry", "emotion-side-eye"]
+  chill: { moveMin: 14, moveMax: 32, moveDelayMin: 1200, moveDelayMax: 3200, blinkMin: 2800, blinkVar: 1800, expressionMs: 12000 },
+  focus: { moveMin: 6, moveMax: 18, moveDelayMin: 2000, moveDelayMax: 3600, blinkMin: 3400, blinkVar: 2000, expressionMs: 15000 },
+  night: { moveMin: 2, moveMax: 10, moveDelayMin: 2600, moveDelayMax: 4200, blinkMin: 4500, blinkVar: 2600, expressionMs: 18000 }
 };
 
 const defaultState = {
   mode: "chill",
   mood: "calm",
   carePoints: 0,
-  notes: [],
-  memory: [],
-  conversation: [],
-  lastCommand: "",
+  sleeping: false,
+  voiceEnabled: true,
   notificationsEnabled: false,
-  micMuted: false,
+  weatherEnabled: false,
+  batteryLevel: null,
+  lastWeatherCode: null,
+  memory: [],
+  notes: [],
   routine: {
     lastMorningDay: "",
     lastBedtimeDay: "",
@@ -68,30 +49,6 @@ const defaultState = {
     lastWeatherAt: 0
   }
 };
-
-let appState = loadState();
-let activeEmotion = "emotion-neutral";
-let isLowBattery = false;
-let batteryLevel = null;
-let isSleeping = false;
-let inactivityTimer;
-let currentX = 0;
-let targetX = 0;
-let blinkTimer;
-let expressionTimer;
-let moveTimer;
-let ambientCooldownUntil = 0;
-let micStream = null;
-let micAnimationHandle = null;
-let cameraStream = null;
-let cameraTimer = null;
-let cameraCanvas = null;
-let cameraContext = null;
-let previousFrame = null;
-let recognition = null;
-let voiceEnabled = false;
-
-const speechApi = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 function loadState() {
   try {
@@ -110,446 +67,44 @@ function loadState() {
   }
 }
 
+let appState = loadState();
+
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
 }
 
-function nowStamp() {
+function stamp() {
   return new Date().toLocaleString();
 }
 
 function remember(message) {
-  const entry = `${nowStamp()} - ${message}`;
+  const entry = `${stamp()} - ${message}`;
   appState.memory.push(entry);
-  appState.memory = appState.memory.slice(-30);
-  memoryLine.textContent = entry;
+  appState.memory = appState.memory.slice(-40);
   saveState();
 }
 
-function addConversation(message) {
-  appState.conversation.push(`${nowStamp()} - ${message}`);
-  appState.conversation = appState.conversation.slice(-25);
-  saveState();
+function dispatchAction(action, payload = {}) {
+  localStorage.setItem(ACTION_KEY, JSON.stringify({
+    id: Date.now(),
+    action,
+    payload
+  }));
 }
 
-function renderNotes() {
-  notesList.innerHTML = "";
-  const merged = [...appState.notes.slice(-4), ...appState.conversation.slice(-3)];
-  merged.slice(-7).forEach((line) => {
-    const li = document.createElement("li");
-    li.textContent = line;
-    notesList.appendChild(li);
-  });
-}
-
-function updateDashboard(message) {
-  if (message) {
-    statusLine.textContent = message;
-  }
-  moodLine.textContent = `Mood: ${appState.mood} | Care: ${appState.carePoints} | Mode: ${modeProfiles[appState.mode].label}`;
-  modeButton.textContent = `Mode: ${modeProfiles[appState.mode].label}`;
-  renderNotes();
-}
-
-function getProfile() {
-  const base = modeProfiles[appState.mode];
-  if (!isLowBattery) {
-    return base;
-  }
-  return {
-    ...base,
-    moveMin: Math.max(3, Math.floor(base.moveMin * 0.6)),
-    moveMax: Math.max(8, Math.floor(base.moveMax * 0.6)),
-    moveDelayMin: base.moveDelayMin + 700,
-    moveDelayMax: base.moveDelayMax + 900,
-    blinkMin: base.blinkMin + 1200,
-    expressionMs: base.expressionMs + 5000
-  };
-}
-
-function renderState() {
-  eyes.classList.remove(...emotionClasses, "lowBattery");
-  eyes.classList.add(activeEmotion);
-  if (isLowBattery) {
-    eyes.classList.add("lowBattery");
-  }
-}
-
-function setEmotion(emotion) {
-  if (isSleeping && emotion !== "emotion-sleepy") {
-    return;
-  }
-  activeEmotion = emotion;
-  renderState();
-}
-
-function setMood(newMood) {
-  appState.mood = newMood;
-  updateDashboard();
-  saveState();
-}
-
-function blink() {
-  eyes.classList.add("blink");
-  setTimeout(() => {
-    eyes.classList.remove("blink");
-  }, 150);
-}
-
-function setMode(mode, reason) {
-  if (!modeProfiles[mode]) {
-    return;
-  }
-  appState.mode = mode;
-  remember(`Mode switched to ${modeProfiles[mode].label}${reason ? ` (${reason})` : ""}`);
-  saveState();
-  scheduleLoops();
-  updateDashboard();
-}
-
-function scheduleBlink() {
-  clearTimeout(blinkTimer);
-  if (isSleeping) {
-    return;
-  }
-  const profile = getProfile();
-  const delay = profile.blinkMin + Math.random() * profile.blinkVar;
-  blinkTimer = setTimeout(() => {
-    blink();
-    scheduleBlink();
-  }, delay);
-}
-
-function scheduleExpression() {
-  clearTimeout(expressionTimer);
-  if (isSleeping) {
-    return;
-  }
-  const profile = getProfile();
-  expressionTimer = setTimeout(() => {
-    if (Date.now() > ambientCooldownUntil) {
-      const random = emotionClasses[Math.floor(Math.random() * emotionClasses.length)];
-      setEmotion(random);
-    }
-    scheduleExpression();
-  }, profile.expressionMs);
-}
-
-function getMaxMoveX() {
-  const profile = getProfile();
-  const viewportBased = Math.floor(window.innerWidth * 0.04);
-  const clamped = Math.max(profile.moveMin, Math.min(profile.moveMax, viewportBased));
-  return clamped;
-}
-
-function scheduleRandomMove() {
-  clearTimeout(moveTimer);
-  if (isSleeping) {
-    targetX = 0;
-    moveTimer = setTimeout(scheduleRandomMove, 3000);
-    return;
-  }
-  const profile = getProfile();
-  const maxMove = getMaxMoveX();
-  targetX = (Math.random() - 0.5) * maxMove * 2;
-  const nextMoveMs = profile.moveDelayMin + Math.random() * (profile.moveDelayMax - profile.moveDelayMin);
-  moveTimer = setTimeout(scheduleRandomMove, nextMoveMs);
-}
-
-function scheduleLoops() {
-  scheduleBlink();
-  scheduleExpression();
-  scheduleRandomMove();
-}
-
-function updatePosition() {
-  currentX += (targetX - currentX) * 0.08;
-  eyes.style.transform = `translateX(${currentX}px)`;
-  requestAnimationFrame(updatePosition);
-}
-
-function enterSleepMode(reason) {
-  if (isSleeping) {
-    return;
-  }
-  isSleeping = true;
-  setMood("sleepy");
-  setEmotion("emotion-sleepy");
-  targetX = 0;
-  remember(`Sleep mode entered${reason ? ` (${reason})` : ""}`);
-  scheduleLoops();
-}
-
-function wakeFromSleep(reason) {
-  if (!isSleeping) {
-    return;
-  }
-  isSleeping = false;
-  setMood("calm");
-  setEmotion("emotion-neutral");
-  remember(`Woke up${reason ? ` (${reason})` : ""}`);
-  scheduleLoops();
-}
-
-function resetInactivityTimer() {
-  clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(() => enterSleepMode("inactivity"), INACTIVITY_MS);
-}
-
-function registerActivity() {
-  wakeFromSleep("touch activity");
-  resetInactivityTimer();
-}
-
-function setAmbientEmotion(type) {
-  if (isSleeping) {
-    return;
-  }
-  const bucket = ambientEmotions[type];
-  if (!bucket || bucket.length === 0) {
-    return;
-  }
-  const random = bucket[Math.floor(Math.random() * bucket.length)];
-  ambientCooldownUntil = Date.now() + 5000;
-  setEmotion(random);
-}
-
-async function stopMicReactiveMode() {
-  if (micAnimationHandle) {
-    cancelAnimationFrame(micAnimationHandle);
-    micAnimationHandle = null;
-  }
-  if (micStream) {
-    micStream.getTracks().forEach((track) => track.stop());
-    micStream = null;
-  }
-  document.querySelectorAll(".eye").forEach((eye) => {
-    eye.style.setProperty("--voice-glow", "60px");
-  });
-  micButton.textContent = "Sound React";
-}
-
-async function startMicReactiveMode() {
-  if (appState.micMuted || isLowBattery) {
-    updateDashboard("Mic mode blocked (muted/low battery).");
-    return;
-  }
-  if (micStream) {
-    await stopMicReactiveMode();
-    updateDashboard("Mic reactive mode disabled.");
-    return;
-  }
-  try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const mic = audioContext.createMediaStreamSource(micStream);
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 128;
-    mic.connect(analyser);
-    const data = new Uint8Array(analyser.frequencyBinCount);
-    micButton.textContent = "Sound React On";
-    updateDashboard("Mic reactive mode enabled.");
-
-    const animate = () => {
-      analyser.getByteFrequencyData(data);
-      const volume = data.reduce((a, b) => a + b, 0) / data.length;
-      document.querySelectorAll(".eye").forEach((eye) => {
-        eye.style.setProperty("--voice-glow", `${60 + volume / 2}px`);
-      });
-      if (volume > 82 && Date.now() > ambientCooldownUntil) {
-        setAmbientEmotion("noisy");
-      } else if (volume < 18 && Date.now() > ambientCooldownUntil) {
-        setAmbientEmotion("quiet");
-      }
-      micAnimationHandle = requestAnimationFrame(animate);
-    };
-    animate();
-  } catch (_error) {
-    updateDashboard("Mic unavailable.");
-  }
-}
-
-function setupVoiceRecognition() {
-  if (!speechApi) {
-    voiceButton.classList.add("hidden");
-    return;
-  }
-  recognition = new speechApi();
-  recognition.continuous = true;
-  recognition.interimResults = false;
-  recognition.lang = "en-US";
-  recognition.onresult = (event) => {
-    for (let i = event.resultIndex; i < event.results.length; i += 1) {
-      if (!event.results[i].isFinal) {
-        continue;
-      }
-      const transcript = event.results[i][0].transcript.trim().toLowerCase();
-      if (!transcript) {
-        continue;
-      }
-      handleVoiceTranscript(transcript);
-    }
-  };
-  recognition.onend = () => {
-    if (voiceEnabled) {
-      recognition.start();
-    }
-  };
-}
-
-function containsWakeWord(text) {
-  return text.includes("emo") || text.includes("andro");
-}
-
-function handleVoiceTranscript(transcript) {
-  addConversation(`voice: ${transcript}`);
-  if (!containsWakeWord(transcript)) {
-    return;
-  }
-  const cleaned = transcript
-    .replace("emo andro", "")
-    .replace("emo", "")
-    .replace("andro", "")
-    .trim();
-  executeCommand(cleaned || "status", "voice");
-}
-
-function toggleVoiceCommands() {
-  if (!recognition) {
-    updateDashboard("Speech recognition is not supported.");
-    return;
-  }
-  voiceEnabled = !voiceEnabled;
-  if (voiceEnabled) {
-    recognition.start();
-    voiceButton.textContent = "Voice Cmd On";
-    updateDashboard("Voice commands listening for wake word: emo/andro.");
-  } else {
-    recognition.stop();
-    voiceButton.textContent = "Voice Cmd";
-    updateDashboard("Voice commands off.");
-  }
-}
-
-async function startCameraPresence() {
-  if (cameraStream) {
-    stopCameraPresence();
-    updateDashboard("Camera presence disabled.");
-    return;
-  }
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: 160, height: 120 }
-    });
-    cameraFeed.srcObject = cameraStream;
-    cameraCanvas = document.createElement("canvas");
-    cameraCanvas.width = 64;
-    cameraCanvas.height = 48;
-    cameraContext = cameraCanvas.getContext("2d", { willReadFrequently: true });
-    cameraButton.textContent = "Camera On";
-    updateDashboard("Camera presence enabled.");
-    monitorCameraPresence();
-  } catch (_error) {
-    updateDashboard("Camera unavailable.");
-  }
-}
-
-function stopCameraPresence() {
-  if (cameraTimer) {
-    clearTimeout(cameraTimer);
-    cameraTimer = null;
-  }
-  if (cameraStream) {
-    cameraStream.getTracks().forEach((track) => track.stop());
-    cameraStream = null;
-  }
-  previousFrame = null;
-  cameraButton.textContent = "Camera Presence";
-}
-
-function monitorCameraPresence() {
-  if (!cameraStream || !cameraContext) {
-    return;
-  }
-  if (cameraFeed.readyState < 2) {
-    cameraTimer = setTimeout(monitorCameraPresence, 1000);
-    return;
-  }
-  cameraContext.drawImage(cameraFeed, 0, 0, cameraCanvas.width, cameraCanvas.height);
-  const frame = cameraContext.getImageData(0, 0, cameraCanvas.width, cameraCanvas.height).data;
-  if (previousFrame) {
-    let diff = 0;
-    for (let i = 0; i < frame.length; i += 16) {
-      diff += Math.abs(frame[i] - previousFrame[i]);
-    }
-    const normalizedDiff = diff / (frame.length / 16);
-    if (normalizedDiff > 12) {
-      registerActivity();
-      if (!isSleeping) {
-        setEmotion("emotion-happy");
-        setMood("engaged");
-      }
-    }
-  }
-  previousFrame = new Uint8ClampedArray(frame);
-  cameraTimer = setTimeout(monitorCameraPresence, 1300);
-}
-
-function openNotesPrompt() {
-  const note = window.prompt("Add a note/task for Emo Andro:");
-  if (!note || !note.trim()) {
-    return;
-  }
-  appState.notes.push(`${nowStamp()} - ${note.trim()}`);
-  appState.notes = appState.notes.slice(-20);
-  remember("Saved a new note.");
-  saveState();
-  renderNotes();
-}
-
-function feedPet() {
-  appState.carePoints += 1;
-  setMood("happy");
-  setEmotion("emotion-love");
-  remember("Fed pet (+1 care).");
-  saveState();
-  updateDashboard("Care increased.");
-  setTimeout(() => {
-    if (!isSleeping) {
-      setEmotion("emotion-neutral");
-    }
-  }, 700);
-}
-
-async function ensureNotifications() {
-  if (!("Notification" in window)) {
-    updateDashboard("Notifications unsupported.");
-    return false;
-  }
-  if (Notification.permission === "granted") {
-    appState.notificationsEnabled = true;
-    notifyButton.textContent = "Notify On";
-    saveState();
-    return true;
-  }
-  const permission = await Notification.requestPermission();
-  appState.notificationsEnabled = permission === "granted";
-  notifyButton.textContent = appState.notificationsEnabled ? "Notify On" : "Notify";
-  saveState();
-  updateDashboard(appState.notificationsEnabled ? "Notifications enabled." : "Notifications denied.");
-  return appState.notificationsEnabled;
+function supportsNotifications() {
+  return "Notification" in window;
 }
 
 async function sendNotification(title, body, tag) {
-  if (!appState.notificationsEnabled) {
+  if (!appState.notificationsEnabled || !supportsNotifications() || Notification.permission !== "granted") {
     return;
   }
-  const reg = await navigator.serviceWorker.getRegistration();
+  const registration = await navigator.serviceWorker.getRegistration();
   const options = {
     body,
     tag,
     renotify: true,
-    data: { timestamp: Date.now() },
     actions: [
       { action: "sleep", title: "Sleep" },
       { action: "wake", title: "Wake" },
@@ -557,317 +112,616 @@ async function sendNotification(title, body, tag) {
       { action: "mute-mic", title: "Mute Mic" }
     ]
   };
-  if (reg) {
-    reg.showNotification(title, options);
-  } else {
-    new Notification(title, options);
-  }
-}
-
-function toggleMicMute(value) {
-  appState.micMuted = value;
-  if (value) {
-    stopMicReactiveMode();
-    remember("Mic muted.");
-    updateDashboard("Mic muted.");
-  } else {
-    remember("Mic unmuted.");
-    updateDashboard("Mic unmuted.");
-  }
-  saveState();
-}
-
-function showBatteryStatus() {
-  if (batteryLevel == null) {
-    updateDashboard("Battery info unavailable.");
+  if (registration) {
+    registration.showNotification(title, options);
     return;
   }
-  const percent = Math.round(batteryLevel * 100);
-  updateDashboard(`Battery: ${percent}%`);
-  addConversation(`battery ${percent}%`);
+  new Notification(title, options);
 }
 
-function rotateMode() {
-  const modes = Object.keys(modeProfiles);
-  const currentIndex = modes.indexOf(appState.mode);
-  const nextMode = modes[(currentIndex + 1) % modes.length];
-  setMode(nextMode, "manual");
-}
+function runControlsPage() {
+  const statusLine = document.getElementById("statusLine");
+  const moodLine = document.getElementById("moodLine");
+  const memoryLine = document.getElementById("memoryLine");
+  const notesList = document.getElementById("notesList");
+  const commandInput = document.getElementById("commandInput");
 
-function speak(text) {
-  if (!("speechSynthesis" in window)) {
-    return;
+  const wakeButton = document.getElementById("wakeButton");
+  const sleepButton = document.getElementById("sleepButton");
+  const chillButton = document.getElementById("chillButton");
+  const focusButton = document.getElementById("focusButton");
+  const nightButton = document.getElementById("nightButton");
+  const feedButton = document.getElementById("feedButton");
+  const voiceButton = document.getElementById("voiceButton");
+  const notifyButton = document.getElementById("notifyButton");
+  const geoButton = document.getElementById("geoButton");
+  const fullscreenButton = document.getElementById("fullscreenButton");
+  const backButton = document.getElementById("backButton");
+  const commandButton = document.getElementById("commandButton");
+
+  function refresh() {
+    appState = loadState();
+    statusLine.textContent = `Mode: ${appState.mode} | Sleep: ${appState.sleeping ? "yes" : "no"} | Voice: ${appState.voiceEnabled ? "on" : "off"}`;
+    moodLine.textContent = `Mood: ${appState.mood} | Care: ${appState.carePoints} | Battery: ${appState.batteryLevel == null ? "?" : `${Math.round(appState.batteryLevel * 100)}%`}`;
+    memoryLine.textContent = appState.memory.length ? appState.memory[appState.memory.length - 1] : "No memory yet.";
+    notesList.innerHTML = "";
+    appState.notes.slice(-6).forEach((note) => {
+      const li = document.createElement("li");
+      li.textContent = note;
+      notesList.appendChild(li);
+    });
+    voiceButton.textContent = `Voice: ${appState.voiceEnabled ? "On" : "Off"}`;
+    notifyButton.textContent = appState.notificationsEnabled ? "Notify: On" : "Enable Notify";
+    geoButton.textContent = appState.weatherEnabled ? "Weather: On" : "Enable Weather";
   }
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  window.speechSynthesis.speak(utterance);
-}
 
-async function fetchWeatherMood() {
-  if (!navigator.onLine || !navigator.geolocation) {
-    return;
-  }
-  if (navigator.permissions?.query) {
-    const permission = await navigator.permissions.query({ name: "geolocation" }).catch(() => null);
-    if (permission && permission.state !== "granted") {
+  wakeButton.addEventListener("click", () => dispatchAction("wake"));
+  sleepButton.addEventListener("click", () => dispatchAction("sleep"));
+  chillButton.addEventListener("click", () => dispatchAction("mode", { mode: "chill" }));
+  focusButton.addEventListener("click", () => dispatchAction("mode", { mode: "focus" }));
+  nightButton.addEventListener("click", () => dispatchAction("mode", { mode: "night" }));
+  feedButton.addEventListener("click", () => dispatchAction("feed"));
+  voiceButton.addEventListener("click", () => {
+    appState = loadState();
+    appState.voiceEnabled = !appState.voiceEnabled;
+    remember(`Voice ${appState.voiceEnabled ? "enabled" : "disabled"} from controls.`);
+    saveState();
+    dispatchAction("voice-toggle", { enabled: appState.voiceEnabled });
+    refresh();
+  });
+
+  notifyButton.addEventListener("click", async () => {
+    if (!supportsNotifications()) {
+      statusLine.textContent = "Notifications unsupported.";
       return;
     }
-  }
-  const now = Date.now();
-  if (now - appState.routine.lastWeatherAt < 2 * 60 * 60 * 1000) {
-    return;
-  }
-  const position = await new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, { maximumAge: 60 * 60 * 1000, timeout: 6000 });
-  }).catch(() => null);
-  if (!position) {
-    return;
-  }
-  const { latitude, longitude } = position.coords;
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weather_code`;
-  const response = await fetch(url).catch(() => null);
-  if (!response || !response.ok) {
-    return;
-  }
-  const payload = await response.json().catch(() => null);
-  const weatherCode = payload?.current?.weather_code;
-  appState.routine.lastWeatherAt = now;
-  saveState();
-  if (weatherCode == null || isSleeping) {
-    return;
-  }
-  if (weatherCode >= 61) {
-    setMood("cozy");
-    setEmotion("emotion-sleepy");
-  } else if (weatherCode <= 2) {
-    setMood("bright");
-    setEmotion("emotion-happy");
-  } else {
-    setMood("calm");
-    setEmotion("emotion-neutral");
-  }
-}
+    const permission = await Notification.requestPermission();
+    appState = loadState();
+    appState.notificationsEnabled = permission === "granted";
+    remember(appState.notificationsEnabled ? "Notifications enabled." : "Notifications denied.");
+    saveState();
+    refresh();
+  });
 
-const commandPacks = [
-  { keywords: ["sleep"], run: () => enterSleepMode("command") },
-  { keywords: ["wake"], run: () => wakeFromSleep("command") },
-  { keywords: ["battery"], run: () => showBatteryStatus() },
-  { keywords: ["open notes"], run: () => commandInput.focus() },
-  { keywords: ["focus mode"], run: () => setMode("focus", "command") },
-  { keywords: ["chill mode"], run: () => setMode("chill", "command") },
-  { keywords: ["night mode"], run: () => setMode("night", "command") },
-  { keywords: ["mute mic"], run: () => toggleMicMute(true) },
-  { keywords: ["unmute mic"], run: () => toggleMicMute(false) },
-  { keywords: ["camera on"], run: () => { if (!cameraStream) { startCameraPresence(); } } },
-  { keywords: ["camera off"], run: () => { if (cameraStream) { stopCameraPresence(); } } },
-  { keywords: ["feed"], run: () => feedPet() },
-  { keywords: ["status"], run: () => updateDashboard("Status report ready.") }
-];
-
-function executeCommand(rawText, source) {
-  const text = (rawText || "").trim().toLowerCase();
-  if (!text) {
-    return;
-  }
-  appState.lastCommand = text;
-  saveState();
-  addConversation(`${source}: ${text}`);
-  const match = commandPacks.find((pack) => pack.keywords.some((keyword) => text.includes(keyword)));
-  if (match) {
-    match.run();
-    remember(`Command executed: "${text}"`);
-    speak(`Running ${text}`);
-    return;
-  }
-  remember(`No command rule matched: "${text}"`);
-}
-
-function runRoutineEngine() {
-  const now = new Date();
-  const dayKey = now.toISOString().slice(0, 10);
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  const nowMs = Date.now();
-
-  if (hour >= 6 && hour <= 10 && appState.routine.lastMorningDay !== dayKey) {
-    appState.routine.lastMorningDay = dayKey;
-    setMood("bright");
-    setEmotion("emotion-happy");
-    remember("Morning greeting.");
-    sendNotification("Emo Andro", "Good morning. Ready to start your day?", "morning");
-  }
-
-  if (hour >= 22 && minute >= 30 && appState.routine.lastBedtimeDay !== dayKey) {
-    appState.routine.lastBedtimeDay = dayKey;
-    setMode("night", "routine");
-    remember("Bedtime mode activated.");
-    sendNotification("Emo Andro", "Night mode enabled. Time to wind down.", "bedtime");
-  }
-
-  if (nowMs - appState.routine.lastHydrationAt > 2 * 60 * 60 * 1000) {
-    appState.routine.lastHydrationAt = nowMs;
-    sendNotification("Hydration", "Time for water break.", "hydrate");
-    remember("Hydration reminder.");
-  }
-
-  if (appState.mode === "focus" && nowMs - appState.routine.lastBreakAt > 45 * 60 * 1000) {
-    appState.routine.lastBreakAt = nowMs;
-    sendNotification("Focus break", "Stand up and stretch for 2 minutes.", "break");
-    remember("Focus break reminder.");
-  }
-
-  fetchWeatherMood().catch(() => {});
-  saveState();
-  updateDashboard();
-}
-
-function applyNotificationActionFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  const action = params.get("action");
-  if (!action) {
-    return;
-  }
-  if (action === "sleep") {
-    executeCommand("sleep", "shortcut");
-  } else if (action === "wake") {
-    executeCommand("wake", "shortcut");
-  } else if (action === "focus") {
-    executeCommand("focus mode", "shortcut");
-  } else if (action === "mute") {
-    executeCommand("mute mic", "shortcut");
-  }
-}
-
-function setupBatteryAwareness() {
-  if (!navigator.getBattery) {
-    return;
-  }
-  navigator.getBattery().then((battery) => {
-    const updateBattery = () => {
-      batteryLevel = battery.level;
-      isLowBattery = battery.level < 0.2;
-      if (battery.level < 0.12) {
-        setMood("low-power");
-        enterSleepMode("critical battery");
-      }
-      if (isLowBattery && micStream) {
-        toggleMicMute(true);
-      }
-      renderState();
-      scheduleLoops();
-      updateDashboard();
-    };
-    battery.addEventListener("levelchange", updateBattery);
-    updateBattery();
-  }).catch(() => {});
-}
-
-function setupFullscreenButton() {
-  function isStandaloneMode() {
-    return window.matchMedia("(display-mode: standalone)").matches
-      || window.matchMedia("(display-mode: fullscreen)").matches
-      || window.navigator.standalone === true;
-  }
-  function updateFullscreenButtonVisibility() {
-    if (isStandaloneMode() || document.fullscreenElement) {
-      fullscreenButton.classList.add("hidden");
-    } else {
-      fullscreenButton.classList.remove("hidden");
+  geoButton.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      statusLine.textContent = "Geolocation unsupported.";
+      return;
     }
-  }
-  async function toggleFullscreen() {
+    navigator.geolocation.getCurrentPosition(() => {
+      appState = loadState();
+      appState.weatherEnabled = true;
+      remember("Weather-based mood enabled.");
+      saveState();
+      refresh();
+    }, () => {
+      statusLine.textContent = "Weather permission denied.";
+    }, { timeout: 6000 });
+  });
+
+  fullscreenButton.addEventListener("click", async () => {
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
       }
     } catch (_error) {
-      updateDashboard("Fullscreen unavailable.");
+      statusLine.textContent = "Fullscreen unavailable.";
     }
-  }
-  if (document.fullscreenEnabled) {
-    fullscreenButton.addEventListener("click", toggleFullscreen);
-    updateFullscreenButtonVisibility();
-    document.addEventListener("fullscreenchange", updateFullscreenButtonVisibility);
-  } else {
-    fullscreenButton.classList.add("hidden");
-  }
+  });
+
+  backButton.addEventListener("click", () => {
+    window.location.href = "./";
+  });
+
+  commandButton.addEventListener("click", () => {
+    const text = commandInput.value.trim();
+    if (!text) {
+      return;
+    }
+    dispatchAction("command", { text });
+    commandInput.value = "";
+  });
+  commandInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    const text = commandInput.value.trim();
+    if (!text) {
+      return;
+    }
+    dispatchAction("command", { text });
+    commandInput.value = "";
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === STORAGE_KEY) {
+      refresh();
+    }
+  });
+
+  refresh();
 }
 
-function setupEvents() {
+function runEyePage() {
+  const eyes = document.getElementById("eyes");
+  const navControlsButton = document.getElementById("navControlsButton");
+  if (!eyes || !navControlsButton) {
+    return;
+  }
+
+  let currentX = 0;
+  let targetX = 0;
+  let inactivityTimer;
+  let blinkTimer;
+  let expressionTimer;
+  let moveTimer;
+  let isListeningVoice = false;
+  let recognition = null;
+  let voiceRestartTimer;
+  let navHideTimer;
   let scrubCount = 0;
   let scrubTimer;
+  const speechApi = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  document.addEventListener("touchstart", registerActivity, { passive: true });
+  function profile() {
+    const base = modeProfiles[appState.mode] || modeProfiles.chill;
+    if (appState.batteryLevel != null && appState.batteryLevel < 0.2) {
+      return {
+        ...base,
+        moveMin: Math.max(2, Math.floor(base.moveMin * 0.65)),
+        moveMax: Math.max(8, Math.floor(base.moveMax * 0.7)),
+        moveDelayMin: base.moveDelayMin + 800,
+        moveDelayMax: base.moveDelayMax + 1200,
+        blinkMin: base.blinkMin + 1000,
+        expressionMs: base.expressionMs + 3500
+      };
+    }
+    return base;
+  }
+
+  function applyVisualState() {
+    const emotional = appState.mood;
+    let emotion = "emotion-neutral";
+    if (appState.sleeping) {
+      emotion = "emotion-sleepy";
+    } else if (emotional === "happy") {
+      emotion = "emotion-happy";
+    } else if (emotional === "engaged") {
+      emotion = "emotion-wide";
+    } else if (emotional === "cozy") {
+      emotion = "emotion-closed-smile";
+    } else if (emotional === "low-power") {
+      emotion = "emotion-yawn";
+    } else if (emotional === "focus") {
+      emotion = "emotion-side-eye";
+    } else if (emotional === "night") {
+      emotion = "emotion-sleepy";
+    }
+
+    eyes.classList.remove(...emotionClasses, "lowBattery");
+    eyes.classList.add(emotion);
+    if (appState.batteryLevel != null && appState.batteryLevel < 0.2) {
+      eyes.classList.add("lowBattery");
+    }
+  }
+
+  function setMood(mood) {
+    appState.mood = mood;
+    saveState();
+    applyVisualState();
+  }
+
+  function blink() {
+    if (appState.sleeping) {
+      return;
+    }
+    eyes.classList.add("blink");
+    setTimeout(() => eyes.classList.remove("blink"), 150);
+  }
+
+  function scheduleBlink() {
+    clearTimeout(blinkTimer);
+    if (appState.sleeping) {
+      return;
+    }
+    const p = profile();
+    blinkTimer = setTimeout(() => {
+      blink();
+      scheduleBlink();
+    }, p.blinkMin + Math.random() * p.blinkVar);
+  }
+
+  function scheduleExpression() {
+    clearTimeout(expressionTimer);
+    if (appState.sleeping) {
+      return;
+    }
+    const p = profile();
+    expressionTimer = setTimeout(() => {
+      const options = emotionClasses.filter((name) => name !== "emotion-dead");
+      const random = options[Math.floor(Math.random() * options.length)];
+      eyes.classList.remove(...emotionClasses);
+      eyes.classList.add(random);
+      scheduleExpression();
+    }, p.expressionMs);
+  }
+
+  function getMaxMoveX() {
+    const p = profile();
+    const viewport = Math.floor(window.innerWidth * 0.04);
+    return Math.max(p.moveMin, Math.min(p.moveMax, viewport));
+  }
+
+  function scheduleMove() {
+    clearTimeout(moveTimer);
+    if (appState.sleeping || appState.mode !== "chill") {
+      targetX = 0;
+      moveTimer = setTimeout(scheduleMove, 2200);
+      return;
+    }
+    const p = profile();
+    const maxMove = getMaxMoveX();
+    targetX = (Math.random() - 0.5) * maxMove * 2;
+    moveTimer = setTimeout(scheduleMove, p.moveDelayMin + Math.random() * (p.moveDelayMax - p.moveDelayMin));
+  }
+
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      appState.sleeping = true;
+      setMood("night");
+      remember("Sleep by inactivity.");
+      saveState();
+      applyVisualState();
+      scheduleBlink();
+      scheduleExpression();
+      scheduleMove();
+    }, INACTIVITY_MS);
+  }
+
+  function wake(reason) {
+    if (appState.sleeping) {
+      appState.sleeping = false;
+      appState.mode = appState.mode || "chill";
+      setMood("calm");
+      remember(`Woke up (${reason}).`);
+      saveState();
+    }
+    resetInactivityTimer();
+    applyVisualState();
+    scheduleBlink();
+    scheduleExpression();
+    scheduleMove();
+  }
+
+  function sleep(reason) {
+    appState.sleeping = true;
+    setMood("night");
+    remember(`Sleep (${reason}).`);
+    saveState();
+    applyVisualState();
+    scheduleBlink();
+    scheduleExpression();
+    scheduleMove();
+  }
+
+  function setMode(mode, reason) {
+    if (!modeProfiles[mode]) {
+      return;
+    }
+    appState.mode = mode;
+    if (mode === "night") {
+      appState.sleeping = true;
+      setMood("night");
+    } else if (!appState.sleeping) {
+      setMood(mode === "focus" ? "focus" : "calm");
+    }
+    remember(`Mode -> ${mode} (${reason}).`);
+    saveState();
+    applyVisualState();
+    scheduleBlink();
+    scheduleExpression();
+    scheduleMove();
+  }
+
+  function doGiggle() {
+    if (appState.sleeping) {
+      return;
+    }
+    eyes.classList.add("giggle");
+    setMood("happy");
+    setTimeout(() => {
+      eyes.classList.remove("giggle");
+      if (!appState.sleeping) {
+        setMood(appState.mode === "focus" ? "focus" : "calm");
+      }
+    }, 650);
+  }
+
+  async function updateWeatherMood() {
+    if (!appState.weatherEnabled || !navigator.onLine || !navigator.geolocation) {
+      return;
+    }
+    const now = Date.now();
+    if (now - appState.routine.lastWeatherAt < 2 * 60 * 60 * 1000) {
+      return;
+    }
+    if (navigator.permissions?.query) {
+      const permission = await navigator.permissions.query({ name: "geolocation" }).catch(() => null);
+      if (permission && permission.state !== "granted") {
+        return;
+      }
+    }
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 6500, maximumAge: 60 * 60 * 1000 });
+    }).catch(() => null);
+    if (!position) {
+      return;
+    }
+    const { latitude, longitude } = position.coords;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weather_code`;
+    const response = await fetch(url).catch(() => null);
+    if (!response || !response.ok) {
+      return;
+    }
+    const payload = await response.json().catch(() => null);
+    const code = payload?.current?.weather_code;
+    if (code == null) {
+      return;
+    }
+    appState.routine.lastWeatherAt = now;
+    appState.lastWeatherCode = code;
+    if (!appState.sleeping) {
+      if (code <= 2) {
+        setMood("happy");
+      } else if (code >= 61) {
+        setMood("cozy");
+      } else if (appState.mode === "focus") {
+        setMood("focus");
+      } else {
+        setMood("calm");
+      }
+    }
+    saveState();
+  }
+
+  async function routineTick() {
+    const now = new Date();
+    const dayKey = now.toISOString().slice(0, 10);
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const nowMs = Date.now();
+
+    if (hour >= 6 && hour <= 10 && appState.routine.lastMorningDay !== dayKey) {
+      appState.routine.lastMorningDay = dayKey;
+      if (!appState.sleeping) {
+        setMood("happy");
+      }
+      sendNotification("Emo Andro", "Good morning.", "morning");
+      remember("Morning routine.");
+    }
+    if (hour >= 22 && minute >= 30 && appState.routine.lastBedtimeDay !== dayKey) {
+      appState.routine.lastBedtimeDay = dayKey;
+      setMode("night", "routine");
+      sendNotification("Emo Andro", "Bedtime mode activated.", "bedtime");
+    }
+    if (nowMs - appState.routine.lastHydrationAt > 2 * 60 * 60 * 1000) {
+      appState.routine.lastHydrationAt = nowMs;
+      sendNotification("Hydration", "Time to drink water.", "hydration");
+    }
+    if (appState.mode === "focus" && nowMs - appState.routine.lastBreakAt > 45 * 60 * 1000) {
+      appState.routine.lastBreakAt = nowMs;
+      sendNotification("Focus Break", "Take a short break.", "focus-break");
+    }
+    await updateWeatherMood();
+    saveState();
+  }
+
+  function processCommand(text, source) {
+    const cmd = (text || "").trim().toLowerCase();
+    if (!cmd) {
+      return;
+    }
+    remember(`Command (${source}): ${cmd}`);
+    if (cmd.includes("hey emo") || cmd.includes("wake")) {
+      wake("voice/command");
+      return;
+    }
+    if (cmd.includes("sleep")) {
+      sleep("voice/command");
+      return;
+    }
+    if (cmd.includes("chill")) {
+      appState.sleeping = false;
+      setMode("chill", "voice/command");
+      return;
+    }
+    if (cmd.includes("focus")) {
+      appState.sleeping = false;
+      setMode("focus", "voice/command");
+      return;
+    }
+    if (cmd.includes("night")) {
+      setMode("night", "voice/command");
+      return;
+    }
+    if (cmd.includes("battery")) {
+      remember(`Battery ${appState.batteryLevel == null ? "unknown" : `${Math.round(appState.batteryLevel * 100)}%`}`);
+      return;
+    }
+    if (cmd.includes("feed")) {
+      appState.carePoints += 1;
+      setMood("happy");
+      saveState();
+      return;
+    }
+  }
+
+  function maybeStartVoiceRecognition() {
+    if (!appState.voiceEnabled || !speechApi || isListeningVoice) {
+      return;
+    }
+    recognition = recognition || new speechApi();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        if (!event.results[i].isFinal) {
+          continue;
+        }
+        const transcript = event.results[i][0].transcript.toLowerCase().trim();
+        processCommand(transcript, "voice");
+      }
+    };
+    recognition.onend = () => {
+      isListeningVoice = false;
+      clearTimeout(voiceRestartTimer);
+      if (appState.voiceEnabled && !document.hidden) {
+        voiceRestartTimer = setTimeout(maybeStartVoiceRecognition, 1800);
+      }
+    };
+    recognition.onerror = () => {};
+    try {
+      recognition.start();
+      isListeningVoice = true;
+      remember("Voice listener active.");
+    } catch (_error) {}
+  }
+
+  function stopVoiceRecognition() {
+    clearTimeout(voiceRestartTimer);
+    if (recognition && isListeningVoice) {
+      recognition.stop();
+    }
+    isListeningVoice = false;
+  }
+
+  function showNavButton() {
+    navControlsButton.classList.remove("hidden");
+    clearTimeout(navHideTimer);
+    navHideTimer = setTimeout(() => {
+      navControlsButton.classList.add("hidden");
+    }, 3500);
+  }
+
+  function handleAction(action, payload) {
+    if (action === "wake") {
+      wake("controls");
+    } else if (action === "sleep") {
+      sleep("controls");
+    } else if (action === "mode") {
+      setMode(payload?.mode || "chill", "controls");
+    } else if (action === "feed") {
+      appState.carePoints += 1;
+      setMood("happy");
+      saveState();
+      doGiggle();
+    } else if (action === "voice-toggle") {
+      appState.voiceEnabled = !!payload?.enabled;
+      saveState();
+      if (appState.voiceEnabled) {
+        maybeStartVoiceRecognition();
+      } else {
+        stopVoiceRecognition();
+      }
+    } else if (action === "mute") {
+      appState.voiceEnabled = false;
+      saveState();
+      stopVoiceRecognition();
+    } else if (action === "command") {
+      processCommand(payload?.text || "", "controls");
+    }
+  }
+
+  function updatePosition() {
+    currentX += (targetX - currentX) * 0.08;
+    eyes.style.transform = `translateX(${currentX}px)`;
+    requestAnimationFrame(updatePosition);
+  }
+
+  navControlsButton.addEventListener("click", () => {
+    window.location.href = "./controls.html";
+  });
+  navControlsButton.classList.add("hidden");
+
+  document.addEventListener("touchstart", () => {
+    showNavButton();
+    wake("touch");
+    maybeStartVoiceRecognition();
+  }, { passive: true });
+
   document.addEventListener("touchmove", () => {
-    const wasSleeping = isSleeping;
-    registerActivity();
-    if (wasSleeping) {
+    showNavButton();
+    if (appState.sleeping) {
+      wake("touch");
       return;
     }
     scrubCount += 1;
     clearTimeout(scrubTimer);
     scrubTimer = setTimeout(() => {
       if (scrubCount > 10) {
-        eyes.classList.add("giggle");
-        setMood("playful");
-        setEmotion("emotion-love");
-        setTimeout(() => {
-          eyes.classList.remove("giggle");
-          setEmotion("emotion-neutral");
-        }, 600);
+        doGiggle();
       }
       scrubCount = 0;
     }, 200);
+    resetInactivityTimer();
   }, { passive: true });
 
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-      registerActivity();
+    if (document.hidden) {
+      stopVoiceRecognition();
+      return;
+    }
+    appState = loadState();
+    applyVisualState();
+    maybeStartVoiceRecognition();
+    resetInactivityTimer();
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === STORAGE_KEY) {
+      appState = loadState();
+      applyVisualState();
+      scheduleMove();
+      return;
+    }
+    if (event.key === ACTION_KEY && event.newValue) {
+      const packet = JSON.parse(event.newValue);
+      handleAction(packet.action, packet.payload);
     }
   });
 
-  micButton.addEventListener("click", startMicReactiveMode);
-  voiceButton.addEventListener("click", toggleVoiceCommands);
-  cameraButton.addEventListener("click", startCameraPresence);
-  notifyButton.addEventListener("click", ensureNotifications);
-  modeButton.addEventListener("click", rotateMode);
-  feedButton.addEventListener("click", feedPet);
-  notesButton.addEventListener("click", openNotesPrompt);
-  commandButton.addEventListener("click", () => {
-    executeCommand(commandInput.value, "typed");
-    commandInput.value = "";
-  });
-  commandInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      executeCommand(commandInput.value, "typed");
-      commandInput.value = "";
-    }
-  });
-}
+  const urlAction = new URLSearchParams(window.location.search).get("action");
+  if (urlAction) {
+    handleAction(urlAction === "focus" ? "mode" : urlAction, urlAction === "focus" ? { mode: "focus" } : {});
+  }
 
-function bootstrap() {
-  if (appState.notificationsEnabled && Notification.permission !== "granted") {
-    appState.notificationsEnabled = false;
+  if (navigator.getBattery) {
+    navigator.getBattery().then((battery) => {
+      const syncBattery = () => {
+        appState.batteryLevel = battery.level;
+        if (battery.level < 0.12) {
+          appState.sleeping = true;
+          setMood("low-power");
+        }
+        saveState();
+        applyVisualState();
+        scheduleMove();
+      };
+      battery.addEventListener("levelchange", syncBattery);
+      syncBattery();
+    }).catch(() => {});
   }
-  notifyButton.textContent = appState.notificationsEnabled ? "Notify On" : "Notify";
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    micButton.classList.add("hidden");
-    cameraButton.classList.add("hidden");
-  }
-  setupVoiceRecognition();
-  setupBatteryAwareness();
-  setupFullscreenButton();
-  setupEvents();
-  applyNotificationActionFromUrl();
-  renderState();
-  renderNotes();
-  updateDashboard("Emo Andro ready.");
+
   updatePosition();
-  scheduleLoops();
+  applyVisualState();
+  scheduleBlink();
+  scheduleExpression();
+  scheduleMove();
   resetInactivityTimer();
-  runRoutineEngine();
-  setInterval(runRoutineEngine, 60 * 1000);
+  routineTick();
+  setInterval(routineTick, 60 * 1000);
 }
 
 if ("serviceWorker" in navigator) {
@@ -876,4 +730,8 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-bootstrap();
+if (document.body.classList.contains("eye-page")) {
+  runEyePage();
+} else if (document.body.classList.contains("controls-page")) {
+  runControlsPage();
+}
