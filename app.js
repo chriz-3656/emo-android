@@ -23,6 +23,9 @@ const emotionClasses = [
 ];
 let activeEmotion = "emotion-neutral";
 let isLowBattery = false;
+let isSleeping = false;
+let inactivityTimer;
+const INACTIVITY_MS = 20 * 60 * 1000;
 
 function renderState() {
   eyes.classList.remove(...emotionClasses, "lowBattery");
@@ -37,6 +40,33 @@ function setEmotion(emotion) {
   renderState();
 }
 
+function enterSleepMode() {
+  if (isSleeping) {
+    return;
+  }
+  isSleeping = true;
+  setEmotion("emotion-sleepy");
+  targetX = 0;
+}
+
+function wakeFromSleep() {
+  if (!isSleeping) {
+    return;
+  }
+  isSleeping = false;
+  setEmotion("emotion-neutral");
+}
+
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(enterSleepMode, INACTIVITY_MS);
+}
+
+function registerActivity() {
+  wakeFromSleep();
+  resetInactivityTimer();
+}
+
 function blink() {
   eyes.classList.add("blink");
   setTimeout(() => {
@@ -47,11 +77,17 @@ function blink() {
 renderState();
 
 setInterval(() => {
+  if (isSleeping) {
+    return;
+  }
   blink();
 }, 3000 + Math.random() * 2000);
 
 const expressions = [...emotionClasses];
 setInterval(() => {
+  if (isSleeping) {
+    return;
+  }
   const random = expressions[Math.floor(Math.random() * expressions.length)];
   setEmotion(random);
 }, 12000);
@@ -72,6 +108,10 @@ function getMaxMoveX() {
 }
 
 function scheduleRandomMove() {
+  if (isSleeping) {
+    setTimeout(scheduleRandomMove, 3000);
+    return;
+  }
   const maxMove = getMaxMoveX();
   targetX = (Math.random() - 0.5) * maxMove * 2;
   const nextMoveMs = 2200 + Math.random() * 3800;
@@ -83,6 +123,11 @@ let scrubCount = 0;
 let scrubTimer;
 
 document.addEventListener("touchmove", () => {
+  const wasSleeping = isSleeping;
+  registerActivity();
+  if (wasSleeping) {
+    return;
+  }
   scrubCount += 1;
   clearTimeout(scrubTimer);
 
@@ -98,6 +143,14 @@ document.addEventListener("touchmove", () => {
     scrubCount = 0;
   }, 200);
 }, { passive: true });
+
+document.addEventListener("touchstart", registerActivity, { passive: true });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    registerActivity();
+  }
+});
+resetInactivityTimer();
 
 if (navigator.getBattery) {
   navigator.getBattery().then((battery) => {
