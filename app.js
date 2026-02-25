@@ -132,10 +132,6 @@ async function toggleFullscreen() {
   try {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen();
-      fullscreenButton.textContent = "Exit fullscreen";
-    } else {
-      await document.exitFullscreen();
-      fullscreenButton.textContent = "Fullscreen";
     }
   } catch (error) {
     fullscreenButton.textContent = "Fullscreen unavailable";
@@ -145,11 +141,24 @@ async function toggleFullscreen() {
   }
 }
 
+function isStandaloneMode() {
+  return window.matchMedia("(display-mode: standalone)").matches
+    || window.matchMedia("(display-mode: fullscreen)").matches
+    || window.navigator.standalone === true;
+}
+
+function updateFullscreenButtonVisibility() {
+  if (isStandaloneMode() || document.fullscreenElement) {
+    fullscreenButton.classList.add("hidden");
+  } else {
+    fullscreenButton.classList.remove("hidden");
+  }
+}
+
 if (document.fullscreenEnabled) {
   fullscreenButton.addEventListener("click", toggleFullscreen);
-  document.addEventListener("fullscreenchange", () => {
-    fullscreenButton.textContent = document.fullscreenElement ? "Exit fullscreen" : "Fullscreen";
-  });
+  updateFullscreenButtonVisibility();
+  document.addEventListener("fullscreenchange", updateFullscreenButtonVisibility);
 } else {
   fullscreenButton.classList.add("hidden");
 }
