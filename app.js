@@ -103,8 +103,9 @@ function updatePosition() {
 updatePosition();
 
 function getMaxMoveX() {
-  const maxMove = window.innerWidth / 2 - 150;
-  return Math.max(80, maxMove);
+  // Keep motion centered with subtle random offsets.
+  const viewportBased = Math.floor(window.innerWidth * 0.04);
+  return Math.max(14, Math.min(32, viewportBased));
 }
 
 function scheduleRandomMove() {
@@ -114,7 +115,7 @@ function scheduleRandomMove() {
   }
   const maxMove = getMaxMoveX();
   targetX = (Math.random() - 0.5) * maxMove * 2;
-  const nextMoveMs = 2200 + Math.random() * 3800;
+  const nextMoveMs = 1200 + Math.random() * 2200;
   setTimeout(scheduleRandomMove, nextMoveMs);
 }
 scheduleRandomMove();

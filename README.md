@@ -1,14 +1,15 @@
 # Emo Andro
 
 Emo Andro is a lightweight web desktop pet built as a PWA for Android phones and desktop browsers.  
-It renders expressive robot-style eyes, reacts to touch/motion/audio, and can run fullscreen as a digital companion.
+It renders expressive robot-style eyes, reacts to touch/audio, and runs fullscreen as a digital companion.
 
 ## Highlights
 
 - 16+ animated eye emotion states inspired by your sprite reference
 - Smooth idle behavior with random expression changes and blinking
-- Mouse and touch horizontal tracking
-- Scrub-to-giggle interaction
+- Centered random micro-movement (stays near screen center)
+- Touch scrub-to-giggle interaction
+- 20-minute inactivity sleep mode (`sleepy`) with touch-to-wake
 - Microphone-reactive glow mode (tap to enable)
 - Low-battery visual tint (when Battery API is available)
 - Installable PWA with offline cache and update-safe service worker
@@ -94,11 +95,14 @@ If old UI is still shown:
 - Mic mode is permission-gated and starts only after user tap.
 - Battery status is browser-dependent and may not be available on all Android builds.
 - Fullscreen button auto-hides in installed standalone/fullscreen display mode.
+- First touch after sleep wakes the pet and does not trigger scrub-giggle instantly.
 
 ## Customization Quick Guide
 
 - Change eye size and spacing: `styles.css` `.eye` and `.eyes`
-- Tune motion sensitivity: `app.js` `updateTargetX()`
+- Tune centered movement range: `app.js` `getMaxMoveX()`
+- Tune movement pacing: `app.js` `scheduleRandomMove()`
+- Tune sleep timeout: `app.js` `INACTIVITY_MS`
 - Tune random expression timing: `app.js` expression interval
 - Tune blink timing: `app.js` blink interval
 - Add new emotion: create CSS class + include class in `emotionClasses` in `app.js`
