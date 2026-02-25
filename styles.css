@@ -1,0 +1,92 @@
+body {
+  margin: 0;
+  background: #050510;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: Arial, sans-serif;
+}
+
+.eyes {
+  display: flex;
+  gap: 80px;
+  transition: all 0.2s ease;
+}
+
+.eye {
+  width: 140px;
+  height: 160px;
+  background: #00ffff;
+  border-radius: 40px;
+  box-shadow: 0 0 60px #00ffff;
+  transition: all 0.25s ease;
+}
+
+.listening .eye {
+  background: #00aaff;
+  box-shadow: 0 0 100px #00aaff;
+}
+
+.angry .eye {
+  background: red;
+  box-shadow: 0 0 100px red;
+  transform: skewX(-12deg);
+}
+
+.sleepy .eye {
+  height: 40px;
+  border-radius: 20px;
+}
+
+.lowBattery .eye {
+  background: orange;
+  box-shadow: 0 0 100px orange;
+}
+
+.happy .eye {
+  border-radius: 60px;
+  height: 120px;
+}
+
+.wide .eye {
+  height: 190px;
+}
+
+.blink .eye {
+  height: 15px !important;
+  border-radius: 20px;
+}
+
+.giggle {
+  animation: giggleAnim 0.4s ease;
+}
+
+.mic-button {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border: 1px solid #00aaff;
+  border-radius: 999px;
+  background: rgba(0, 170, 255, 0.15);
+  color: #dbf8ff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mic-button.hidden {
+  display: none;
+}
+
+@keyframes giggleAnim {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-20px); }
+  50% { transform: translateX(20px); }
+  75% { transform: translateX(-10px); }
+  100% { transform: translateX(0); }
+}
