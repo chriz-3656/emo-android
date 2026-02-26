@@ -1,6 +1,6 @@
 const STORAGE_KEY = "emo-andro-state-v5";
 const ACTION_KEY = "emo-andro-action-v1";
-const INACTIVITY_SLEEP_MS = 20 * 60 * 1000;
+const INACTIVITY_SLEEP_MS = 60 * 60 * 1000;
 
 const system = {
   mode: "ACTIVE",
