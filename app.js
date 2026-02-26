@@ -164,7 +164,7 @@ function runControlsPage() {
     remoteUrlInput.value = appState.remoteWsUrl || "";
     remotePetIdInput.value = appState.remotePetId || "emo-01";
     remoteTokenInput.value = appState.remoteToken || "";
-    remoteStatusLine.textContent = appState.remoteEnabled ? "Remote enabled on pet app." : "Remote disconnected.";
+    remoteStatusLine.textContent = appState.remoteEnabled ? "Remote enabled. Keep Eyes page open to stay connected." : "Remote disconnected.";
   }
 
   wakeButton.addEventListener("click", () => dispatchAction("wake"));
@@ -253,7 +253,14 @@ function runControlsPage() {
     dispatchAction("remote-config", { wsUrl, petId, token });
     refresh();
   });
-  remoteToggleButton.addEventListener("click", () => dispatchAction("remote-toggle"));
+  remoteToggleButton.addEventListener("click", () => {
+    appState = loadState();
+    appState.remoteEnabled = !appState.remoteEnabled;
+    remember(`Remote ${appState.remoteEnabled ? "enabled" : "disabled"} from controls.`);
+    saveState();
+    dispatchAction("remote-toggle");
+    refresh();
+  });
   refresh();
 }
 
