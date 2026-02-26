@@ -1,38 +1,105 @@
 # Emo Andro
 
-Emo Andro is a local-first PWA digital pet for Android and desktop.
-It now uses a two-page architecture:
+Emo Andro is a sensor-aware autonomous companion PWA.
+This edition runs a centralized behavior brain and uses Android-accessible hardware to behave like an artificial organism.
 
-- `index.html`: clean eye page (no control overlay)
-- `controls.html`: control and assistant actions page
+## System Model
 
-## What Changed
+- Global system modes:
+  - `ACTIVE`
+  - `IDLE`
+  - `SLEEP`
+- Core authority object:
+  - `brain` with internal needs + environmental sensor state
+- Central behavior loop every 2 seconds:
+  - `updateNeeds()`
+  - `processSensors()`
+  - `decideBehavior()`
+  - `renderState()`
 
-- Controls are separated from the eye screen to avoid overlaying visuals.
-- Eye page stays focused on pet behavior only.
-- Added a small semi-transparent `Controls` button on the eye page.
-- `Controls` button auto-hides after no touch and reappears on touch.
-- Removed unstable continuous mic-reactive open/close behavior.
-- Kept sleep logic and scrub-giggle.
+## Hardware Utilization
 
-## Core Features
+First user touch initializes hardware permissions and startup pipeline:
 
-- 16+ eye emotions
-- 20-minute inactivity sleep mode
-- Touch wake from sleep
-- Scrub gesture -> giggle reaction
-- Voice commands:
-  - `hey emo` or `wake` -> wake
-  - `sleep` -> sleep
-  - `chill` -> chill/random mode
-  - `focus`, `night`, `battery`, `feed`
-- Context modes: `chill`, `focus`, `night`
-- Environment-based mood shifts from:
-  - battery level
-  - weather (when enabled + permission granted)
-  - time/routine windows
-- Local memory/personality state in `localStorage`
-- PWA notifications with quick actions
+- DeviceMotion permission
+- DeviceOrientation permission
+- Microphone stream (analyser)
+- Camera stream (face-presence approximation)
+- Wake Lock request
+- Fullscreen request
+- Vibration support (capability-based)
+
+## Brain and Environment
+
+`brain.environment` tracks:
+
+- motion intensity
+- tilt X / tilt Y
+- rotation
+- loudness
+- approximate light level
+- face presence and horizontal face position
+- online/offline state
+- battery level
+
+## Behavior Rules
+
+- No random emotion timers.
+- Emotion is derived by `decideBehavior()` and rendered only through `renderState()`.
+- Priority order:
+  1. battery low
+  2. sleeping
+  3. motion shock
+  4. listening
+  5. speaking
+  6. face detected
+  7. curiosity trigger
+  8. neutral
+
+## Sleep / Wake Behavior
+
+- Sleep triggers:
+  - low energy
+  - lying still (flat motion profile) for prolonged duration
+- Sleep state:
+  - sleepy emotion
+  - reduced motion
+  - slow blink
+  - floating `Z` animation above eyes
+  - reduced glow/brightness
+- Wake triggers:
+  - touch
+  - loud sound
+  - motion shock
+  - wake phrase
+- Wake sequence:
+  1. stop sleep posture
+  2. double blink
+  3. scan left/right/center with easing
+  4. glow pulse
+  5. energy boost
+
+## Sensor Reactions
+
+- Accelerometer:
+  - high intensity -> dizzy + shake + vibration
+  - medium intensity -> alert state
+- Orientation:
+  - eye skew based on tilt
+  - rapid rotation can trigger confused response
+- Audio:
+  - loud spikes wake companion
+  - persistent noise can raise annoyed tendency
+  - sustained silence increases sleep tendency
+- Camera:
+  - tracks bright-face proxy center (`faceX`)
+  - eyes can orient toward detected subject
+
+## Network and Battery
+
+- Offline event raises confused tendency.
+- Online event raises happy tendency.
+- Low battery elevates `batteryLow` priority behavior.
 
 ## Emotion Set
 
@@ -70,7 +137,7 @@ Current emotion classes:
 - `index.html` - Eye page
 - `controls.html` - Controls/actions page
 - `styles.css` - Eye + controls-page styling
-- `app.js` - Shared state + eye engine + controls actions + routines
+- `app.js` - Brain, sensor manager, behavior engine, controls actions
 - `manifest.webmanifest` - PWA install config (fullscreen, rotation, icons)
 - `sw.js` - Cache lifecycle, fetch strategy, notification action routing
 - `icons/icon-192.svg` - PWA icon
@@ -132,10 +199,12 @@ If old UI is still shown:
 
 ## Behavior Notes
 
+- All emotion class changes are rendered only through `renderState()`.
+- Sensor handlers write to `brain.environment` and do not directly switch UI classes.
+- Blink timing changes by emotion profile (`neutral/sleepy/wide/annoyed/dizzy`).
 - Voice recognition support varies by Android browser.
 - On some browsers, voice listening starts after first touch interaction.
-- Low battery automatically slows behavior and can force sleep on critical levels.
-- First touch while sleeping wakes the pet immediately.
+- First touch while sleeping wakes the companion immediately.
 - Weather reactions need geolocation permission enabled from controls page.
 - Fullscreen button is available on controls page for browser-tab usage.
 
@@ -143,7 +212,9 @@ If old UI is still shown:
 
 - Tune eye visuals: `styles.css` `.eye`, `.eyes`, `emotion-*`
 - Tune nav button behavior: `styles.css` `.nav-controls` + `app.js` `showNavButton()`
-- Tune sleep timeout: `app.js` `INACTIVITY_MS`
-- Tune mode movement/blink: `app.js` `modeProfiles`
+- Tune needs decay and thresholds: `app.js` `updateNeeds()`
+- Tune sensor effects: `app.js` `processSensors()`
+- Tune behavior priority: `app.js` `decideBehavior()`
+- Tune mode movement range: `app.js` `modeProfiles`
 - Tune routines/reminders: `app.js` `routineTick()`
-- Add commands: extend `processCommand()` in `app.js`
+- Add commands: extend `handleCommand()` in `app.js`
