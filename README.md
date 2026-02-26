@@ -148,12 +148,18 @@ Current emotion classes:
 
 ## Remote Control (Cloudflare Serverless)
 
-This repo now supports a separate remote dashboard using Cloudflare Workers WebSocket relay.
+This repo supports a separate remote dashboard using Cloudflare Workers WebSocket relay.
 
 - Pet app connects as role `pet`.
 - Dashboard app connects as role `dashboard`.
 - Worker routes commands from dashboard -> pet.
 - Pet streams live state back to dashboard.
+
+### Features
+
+- **Remote Emotion Control**: Manually set any of 22 emotions from the dashboard
+- **Eye Position Control**: Drag the eyes left/right using the slider
+- **Auto Emotion Mode**: Return to autonomous behavior anytime
 
 ### Step-by-step setup
 
@@ -189,10 +195,13 @@ wrangler deploy
 - Fill same Worker URL, Pet ID, Token
 - Tap `Connect`
 
-### WebSocket endpoints
+### Remote Dashboard Controls
 
-- Pet: `/ws/pet/:petId?token=...`
-- Dashboard: `/ws/dashboard/:petId?token=...`
+- **Actions**: Wake, Sleep, Feed, Mic Toggle, Cam Toggle
+- **Modes**: Chill, Focus, Night
+- **Emotions** (22 total): Neutral, Sleepy, Happy, Listening, Speaking, Wide, Angry, Side Eye, Spiral, Dizzy Line, Low Battery, Dead, Yawn, Arc Up, Evil, Tilted, Closed Smile, Squeeze, Tiny, Love, Wink, Dizzy
+- **Eye Position**: Drag slider left/right or click Center
+- **Auto Emotion**: Click to return to autonomous behavior
 
 ## Voice Commands
 

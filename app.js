@@ -321,6 +321,11 @@ function runEyePage() {
   let motionShockResetAt = 0;
   let scrubCount = 0;
   let scrubTimer = null;
+  
+  // Remote override tracking
+  let remoteEmotionOverride = null;
+  let remoteEyePosition = null;
+  let remoteEyePositionUntil = 0;
 
   function showNavButton() {
     navControlsButton.classList.remove("hidden");
@@ -753,6 +758,12 @@ function runEyePage() {
     brain.listening = now < transient.listeningUntil;
     brain.speaking = now < transient.speakingUntil;
 
+    // If remote has an emotion override, use it (unless sleeping or critical states)
+    if (remoteEmotionOverride && !brain.sleeping && !brain.batteryLow && !motionShockActive && !brain.listening && !brain.speaking) {
+      brain.emotion = remoteEmotionOverride;
+      return;
+    }
+
     if (brain.batteryLow) {
       brain.emotion = "lowBattery";
       return;
@@ -963,6 +974,17 @@ function runEyePage() {
     const scanX = sampleScanX(nowPerf);
     if (scanX != null) {
       targetX = scanX;
+    }
+
+    // Handle remote eye position override
+    if (remoteEyePosition != null) {
+      if (Date.now() > remoteEyePositionUntil) {
+        // Timeout expired, clear remote position
+        remoteEyePosition = null;
+      } else {
+        // Use remote position
+        targetX = remoteEyePosition;
+      }
     }
 
     if (brain.sleeping) {
@@ -1274,6 +1296,33 @@ function runEyePage() {
       appState.voiceEnabled = false;
       saveState();
       stopVoiceRecognition();
+    }
+    // Handle emotion override from remote dashboard
+    if (action === "emotion") {
+      const emotion = payload?.emotion;
+      if (emotion) {
+        if (emotion === "clear-emotion" || emotion === "auto") {
+          // Clear override - return to autonomous behavior
+          remoteEmotionOverride = null;
+          remember("Emotion: Auto mode");
+        } else if (emotionClassByBrain[emotion] || emotion.startsWith("emotion-")) {
+          // Apply emotion override
+          remoteEmotionOverride = emotion;
+          remember(`Emotion: ${emotion} (remote)`);
+        }
+      }
+      return;
+    }
+    // Handle eye position from remote dashboard
+    if (action === "eyePosition") {
+      const x = payload?.x;
+      if (typeof x === "number") {
+        // Set remote eye position with 10 second timeout
+        remoteEyePosition = x;
+        remoteEyePositionUntil = Date.now() + 10000;
+        targetX = x;
+      }
+      return;
     }
   }
 

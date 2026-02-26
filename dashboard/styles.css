@@ -48,3 +48,50 @@ button {
   padding: 10px;
   overflow: auto;
 }
+
+/* Eye Drag Controller Styles */
+.eye-drag-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.eye-drag-track {
+  flex: 1;
+  height: 24px;
+  background: rgba(47, 84, 105, 0.5);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid #2f5469;
+}
+
+.eye-drag-thumb {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #54fff3, #00aaff);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  left: 50%;
+  cursor: grab;
+  box-shadow: 0 0 10px rgba(84, 255, 243, 0.6);
+  transition: box-shadow 0.2s;
+}
+
+.eye-drag-thumb:hover {
+  box-shadow: 0 0 16px rgba(84, 255, 243, 0.9);
+}
+
+.eye-drag-thumb:active {
+  cursor: grabbing;
+}
+
+.eye-drag-label {
+  font-size: 12px;
+  color: rgba(217, 248, 255, 0.7);
+  white-space: nowrap;
+}
