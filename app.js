@@ -58,9 +58,9 @@ const defaultState = {
 };
 
 const modeProfiles = {
-  chill: { moveMin: 14, moveMax: 42 },
-  focus: { moveMin: 6, moveMax: 24 },
-  night: { moveMin: 2, moveMax: 12 }
+  chill: { moveMin: 18, moveMax: 60 },
+  focus: { moveMin: 8, moveMax: 34 },
+  night: { moveMin: 3, moveMax: 18 }
 };
 
 const emotionClassByBrain = {
@@ -292,7 +292,7 @@ function runEyePage() {
   let blinkActive = false;
   let nextBlinkAt = Date.now() + getBlinkDelay("neutral");
   let wakeDoubleBlinkCount = 0;
-  let nextLookAt = Date.now() + randomInRange(8000, 15000);
+  let nextLookAt = Date.now() + randomInRange(2200, 5000);
   let nextZAt = Date.now() + 1500;
   let navHideTimer = null;
   let decisionLoop = null;
@@ -321,6 +321,9 @@ function runEyePage() {
     speakingUntil: 0,
     listeningUntil: 0,
     wakeGlowUntil: 0,
+    idleExpressionUntil: 0,
+    idleExpression: "",
+    nextIdleExpressionAt: Date.now() + randomInRange(2500, 6000),
     stillStartAt: Date.now(),
     noisyScore: 0,
     silentScore: 0
@@ -667,8 +670,23 @@ function runEyePage() {
 
   function getMaxMoveX() {
     const profile = modeProfiles[appState.mode] || modeProfiles.chill;
-    const viewportBased = Math.floor(window.innerWidth * 0.05);
+    const viewportBased = Math.floor(window.innerWidth * 0.065);
     return clamp(viewportBased, profile.moveMin, profile.moveMax);
+  }
+
+  function pickIdleExpression() {
+    // Avoid "tilted" here because users complained about slanting.
+    const options = [
+      "arc-up",
+      "closed-smile",
+      "wink",
+      "love",
+      "tiny",
+      "squeeze",
+      "yawn",
+      "evil"
+    ];
+    return options[Math.floor(Math.random() * options.length)];
   }
 
   function updateNeeds() {
@@ -765,6 +783,7 @@ function runEyePage() {
 
   function decideBehavior() {
     const now = Date.now();
+    const idleMs = now - brain.lastInteraction;
     brain.listening = now < transient.listeningUntil;
     brain.speaking = now < transient.speakingUntil;
 
@@ -819,6 +838,27 @@ function runEyePage() {
       brain.emotion = "happy";
       return;
     }
+
+    // Idle expression spice: short-lived, low-priority expressions when awake and calm.
+    if (!remoteEmotionOverride && idleMs > 4000 && now < transient.idleExpressionUntil && transient.idleExpression) {
+      brain.emotion = transient.idleExpression;
+      return;
+    }
+    if (
+      !remoteEmotionOverride &&
+      idleMs > 8000 &&
+      now >= transient.nextIdleExpressionAt &&
+      brain.energy > 35 &&
+      brain.curiosity > 25 &&
+      !brain.environment.faceDetected
+    ) {
+      transient.idleExpression = pickIdleExpression();
+      transient.idleExpressionUntil = now + randomInRange(900, 1700);
+      transient.nextIdleExpressionAt = now + randomInRange(2500, 6500);
+      brain.emotion = transient.idleExpression;
+      return;
+    }
+
     brain.emotion = "neutral";
   }
 
@@ -839,18 +879,30 @@ function runEyePage() {
 
   function getBlinkDelay(emotion) {
     if (emotion === "sleepy") {
-      return randomInRange(5000, 7000);
+      return randomInRange(4200, 6200);
     }
     if (emotion === "wide") {
-      return randomInRange(2500, 3600);
+      return randomInRange(1700, 2600);
+    }
+    if (emotion === "happy") {
+      return randomInRange(2200, 3600);
+    }
+    if (emotion === "listening" || emotion === "speaking") {
+      return randomInRange(2400, 3800);
+    }
+    if (emotion === "alert") {
+      return randomInRange(1800, 3200);
     }
     if (emotion === "annoyed") {
-      return randomInRange(7000, 9000);
+      return randomInRange(5000, 7500);
     }
     if (emotion === "dizzy") {
-      return randomInRange(1200, 2000);
+      return randomInRange(900, 1500);
     }
-    return randomInRange(3000, 5000);
+    if (emotion === "confused") {
+      return randomInRange(2600, 4200);
+    }
+    return randomInRange(2200, 3800);
   }
 
   function maybeBlink(now) {
@@ -905,7 +957,7 @@ function runEyePage() {
     }
     const maxMove = getMaxMoveX();
     targetX = (Math.random() - 0.5) * maxMove * 2;
-    nextLookAt = now + randomInRange(3500, 8000);
+    nextLookAt = now + randomInRange(2500, 5500);
   }
 
   function sampleScanX(nowPerf) {
@@ -1006,7 +1058,7 @@ function runEyePage() {
       eyes.style.setProperty("--voice-glow", brain.environment.loudSound ? "95px" : "60px");
     }
 
-    currentX += (targetX - currentX) * 0.12;
+    currentX += (targetX - currentX) * 0.16;
     currentSkew += (0 - currentSkew) * 0.12;
     eyes.style.transform = `translateX(${currentX.toFixed(2)}px) skewX(${currentSkew.toFixed(2)}deg)`;
     // Render every frame so blink and transient classes are visible.
