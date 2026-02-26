@@ -268,6 +268,8 @@ function runEyePage() {
     noisyScore: 0,
     silentScore: 0
   };
+  let scrubCount = 0;
+  let scrubTimer = null;
 
   function showNavButton() {
     navControlsButton.classList.remove("hidden");
@@ -653,6 +655,9 @@ function runEyePage() {
     if (transient.confusedUntil > now) {
       brain.curiosity = clamp(brain.curiosity + 0.3, 0, 100);
     }
+
+    // Decay motion signal so shake/dizzy states do not get stuck.
+    brain.environment.motionIntensity = Math.max(0, brain.environment.motionIntensity * 0.68);
   }
 
   function decideBehavior() {
@@ -848,7 +853,9 @@ function runEyePage() {
     }
     const sampleCount = (cameraCanvas.width / 3) * (cameraCanvas.height / 3);
     brain.environment.lightApprox = brightSum / sampleCount;
-    if (brightCount > 30) {
+    const brightRatio = brightCount / sampleCount;
+    // Higher threshold to avoid always-on "face detected" from generic bright scenes.
+    if (brightCount > 170 && brightRatio > 0.2) {
       brain.environment.faceDetected = true;
       brain.environment.faceX = weightedX / brightCount / cameraCanvas.width;
     } else {
@@ -871,8 +878,10 @@ function runEyePage() {
     }
 
     const maxMove = getMaxMoveX();
-    const tiltOffset = clamp((brain.environment.tiltY || 0) / 38, -1, 1) * (maxMove * 0.9);
-    const targetWithTilt = targetX + tiltOffset;
+    const tiltY = brain.environment.tiltY || 0;
+    const tiltNormalized = Math.abs(tiltY) < 2 ? 0 : clamp(tiltY / 45, -1, 1);
+    const tiltOffset = tiltNormalized * (maxMove * 0.45);
+    const targetWithTilt = clamp(targetX + tiltOffset, -maxMove * 1.15, maxMove * 1.15);
 
     if (brain.sleeping) {
       targetX = 0;
@@ -887,6 +896,8 @@ function runEyePage() {
     const tiltSkew = clamp((brain.environment.tiltY || 0) / 8, -9, 9);
     currentSkew += (tiltSkew - currentSkew) * 0.12;
     eyes.style.transform = `translateX(${currentX.toFixed(2)}px) skewX(${currentSkew.toFixed(2)}deg)`;
+    // Render every frame so blink and transient classes are visible.
+    renderState();
     requestAnimationFrame(motionFrame);
   }
 
@@ -1062,7 +1073,22 @@ function runEyePage() {
     showNavButton();
     if (brain.sleeping) {
       wake("touch move");
+      return;
     }
+    scrubCount += 1;
+    clearTimeout(scrubTimer);
+    scrubTimer = setTimeout(() => {
+      if (scrubCount > 10) {
+        eyes.classList.add("giggle");
+        transient.happyUntil = Date.now() + 1800;
+        brain.socialNeed = clamp(brain.socialNeed - 10, 0, 100);
+        brain.curiosity = clamp(brain.curiosity - 8, 0, 100);
+        setTimeout(() => {
+          eyes.classList.remove("giggle");
+        }, 420);
+      }
+      scrubCount = 0;
+    }, 220);
   }, { passive: true });
 
   document.addEventListener("visibilitychange", () => {
