@@ -268,6 +268,8 @@ function runEyePage() {
     noisyScore: 0,
     silentScore: 0
   };
+  let motionShockActive = false;
+  let motionShockResetAt = 0;
   let scrubCount = 0;
   let scrubTimer = null;
 
@@ -609,7 +611,9 @@ function runEyePage() {
   function processSensors() {
     const now = Date.now();
     if (brain.environment.motionIntensity > 18) {
-      transient.motionShockUntil = now + 1800;
+      motionShockActive = true;
+      transient.motionShockUntil = now + 1200;
+      motionShockResetAt = now + 2200;
     }
     if (brain.environment.motionIntensity >= 6 && brain.environment.motionIntensity <= 14) {
       transient.alertUntil = now + 1400;
@@ -658,7 +662,8 @@ function runEyePage() {
 
     // Decay motion signal so shake/dizzy states do not get stuck.
     brain.environment.motionIntensity = Math.max(0, brain.environment.motionIntensity * 0.68);
-    if (now > transient.motionShockUntil && brain.environment.motionIntensity < 2) {
+    if (motionShockActive && now > motionShockResetAt && brain.environment.motionIntensity < 3) {
+      motionShockActive = false;
       transient.motionShockUntil = 0;
     }
   }
@@ -676,7 +681,7 @@ function runEyePage() {
       brain.emotion = "sleepy";
       return;
     }
-    if (transient.motionShockUntil > now) {
+    if (motionShockActive) {
       brain.emotion = "dizzy";
       return;
     }
