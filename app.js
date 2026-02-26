@@ -288,11 +288,13 @@ function runEyePage() {
   let sensorInitialized = false;
   let currentX = 0;
   let targetX = 0;
+  let currentY = 0;
+  let targetY = 0;
   let currentSkew = 0;
   let blinkActive = false;
   let nextBlinkAt = Date.now() + getBlinkDelay("neutral");
   let wakeDoubleBlinkCount = 0;
-  let nextLookAt = Date.now() + randomInRange(2200, 5000);
+  let nextLookAt = Date.now() + randomInRange(3500, 8000);
   let nextZAt = Date.now() + 1500;
   let navHideTimer = null;
   let decisionLoop = null;
@@ -321,9 +323,6 @@ function runEyePage() {
     speakingUntil: 0,
     listeningUntil: 0,
     wakeGlowUntil: 0,
-    idleExpressionUntil: 0,
-    idleExpression: "",
-    nextIdleExpressionAt: Date.now() + randomInRange(2500, 6000),
     stillStartAt: Date.now(),
     noisyScore: 0,
     silentScore: 0
@@ -674,19 +673,15 @@ function runEyePage() {
     return clamp(viewportBased, profile.moveMin, profile.moveMax);
   }
 
-  function pickIdleExpression() {
-    // Avoid "tilted" here because users complained about slanting.
-    const options = [
-      "arc-up",
-      "closed-smile",
-      "wink",
-      "love",
-      "tiny",
-      "squeeze",
-      "yawn",
-      "evil"
-    ];
-    return options[Math.floor(Math.random() * options.length)];
+  function getMaxMoveY() {
+    const base = Math.floor(window.innerHeight * 0.035);
+    if (appState.mode === "night") {
+      return clamp(base, 4, 14);
+    }
+    if (appState.mode === "focus") {
+      return clamp(base, 6, 18);
+    }
+    return clamp(base, 8, 24);
   }
 
   function updateNeeds() {
@@ -783,7 +778,6 @@ function runEyePage() {
 
   function decideBehavior() {
     const now = Date.now();
-    const idleMs = now - brain.lastInteraction;
     brain.listening = now < transient.listeningUntil;
     brain.speaking = now < transient.speakingUntil;
 
@@ -836,26 +830,6 @@ function runEyePage() {
     }
     if (transient.happyUntil > now) {
       brain.emotion = "happy";
-      return;
-    }
-
-    // Idle expression spice: short-lived, low-priority expressions when awake and calm.
-    if (!remoteEmotionOverride && idleMs > 4000 && now < transient.idleExpressionUntil && transient.idleExpression) {
-      brain.emotion = transient.idleExpression;
-      return;
-    }
-    if (
-      !remoteEmotionOverride &&
-      idleMs > 8000 &&
-      now >= transient.nextIdleExpressionAt &&
-      brain.energy > 35 &&
-      brain.curiosity > 25 &&
-      !brain.environment.faceDetected
-    ) {
-      transient.idleExpression = pickIdleExpression();
-      transient.idleExpressionUntil = now + randomInRange(900, 1700);
-      transient.nextIdleExpressionAt = now + randomInRange(2500, 6500);
-      brain.emotion = transient.idleExpression;
       return;
     }
 
@@ -942,6 +916,7 @@ function runEyePage() {
   function maybeRandomLook(now) {
     if (brain.sleeping || brain.listening || brain.speaking) {
       targetX = 0;
+      targetY = 0;
       return;
     }
     if (scanSequence) {
@@ -950,14 +925,17 @@ function runEyePage() {
     if (brain.environment.faceDetected) {
       const maxMove = getMaxMoveX();
       targetX = (brain.environment.faceX - 0.5) * maxMove * 2;
+      targetY = 0;
       return;
     }
     if (now < nextLookAt) {
       return;
     }
     const maxMove = getMaxMoveX();
+    const maxMoveY = getMaxMoveY();
     targetX = (Math.random() - 0.5) * maxMove * 2;
-    nextLookAt = now + randomInRange(2500, 5500);
+    targetY = (Math.random() - 0.5) * maxMoveY * 2;
+    nextLookAt = now + randomInRange(3500, 8000);
   }
 
   function sampleScanX(nowPerf) {
@@ -1036,6 +1014,7 @@ function runEyePage() {
     const scanX = sampleScanX(nowPerf);
     if (scanX != null) {
       targetX = scanX;
+      targetY = 0;
     }
 
     // Handle remote eye position override
@@ -1051,6 +1030,7 @@ function runEyePage() {
 
     if (brain.sleeping) {
       targetX = 0;
+      targetY = 0;
       eyes.style.opacity = "0.88";
       eyes.style.setProperty("--voice-glow", "28px");
     } else {
@@ -1058,9 +1038,10 @@ function runEyePage() {
       eyes.style.setProperty("--voice-glow", brain.environment.loudSound ? "95px" : "60px");
     }
 
-    currentX += (targetX - currentX) * 0.16;
+    currentX += (targetX - currentX) * 0.18;
+    currentY += (targetY - currentY) * 0.18;
     currentSkew += (0 - currentSkew) * 0.12;
-    eyes.style.transform = `translateX(${currentX.toFixed(2)}px) skewX(${currentSkew.toFixed(2)}deg)`;
+    eyes.style.transform = `translate(${currentX.toFixed(2)}px, ${currentY.toFixed(2)}px) skewX(${currentSkew.toFixed(2)}deg)`;
     // Render every frame so blink and transient classes are visible.
     renderState();
     requestAnimationFrame(motionFrame);
