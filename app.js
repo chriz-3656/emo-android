@@ -926,12 +926,6 @@ function runEyePage() {
       targetX = scanX;
     }
 
-    const maxMove = getMaxMoveX();
-    const tiltY = brain.environment.tiltY || 0;
-    const tiltNormalized = Math.abs(tiltY) < 3 ? 0 : clamp(tiltY / 45, -1, 1);
-    const tiltOffset = tiltNormalized * (maxMove * 0.45);
-    const targetWithTilt = clamp(targetX + tiltOffset, -maxMove * 1.15, maxMove * 1.15);
-
     if (brain.sleeping) {
       targetX = 0;
       eyes.style.opacity = "0.88";
@@ -941,9 +935,8 @@ function runEyePage() {
       eyes.style.setProperty("--voice-glow", brain.environment.loudSound ? "95px" : "60px");
     }
 
-    currentX += (targetWithTilt - currentX) * 0.12;
-    const tiltSkew = clamp((brain.environment.tiltY || 0) / 8, -9, 9);
-    currentSkew += (tiltSkew - currentSkew) * 0.12;
+    currentX += (targetX - currentX) * 0.12;
+    currentSkew += (0 - currentSkew) * 0.12;
     eyes.style.transform = `translateX(${currentX.toFixed(2)}px) skewX(${currentSkew.toFixed(2)}deg)`;
     // Render every frame so blink and transient classes are visible.
     renderState();
