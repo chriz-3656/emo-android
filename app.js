@@ -1064,7 +1064,8 @@ function runEyePage() {
   }
 
   function getRemoteEndpoint() {
-    const wsBase = (appState.remoteWsUrl || "").trim().replace(/\/$/, "");
+    const rawBase = (appState.remoteWsUrl || "").trim().replace(/\/+$/, "");
+    const wsBase = /\/ws$/i.test(rawBase) ? rawBase : `${rawBase}/ws`;
     const petId = encodeURIComponent((appState.remotePetId || "emo-01").trim());
     const token = encodeURIComponent((appState.remoteToken || "").trim());
     if (!wsBase || !petId || !token) {

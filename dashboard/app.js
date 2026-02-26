@@ -13,8 +13,16 @@ function setState(text) {
   connState.textContent = text;
 }
 
+function normalizeWsBase(baseUrl) {
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (!trimmed) {
+    return "";
+  }
+  return /\/ws$/i.test(trimmed) ? trimmed : `${trimmed}/ws`;
+}
+
 function endpoint() {
-  const base = wsUrlInput.value.trim().replace(/\/$/, "");
+  const base = normalizeWsBase(wsUrlInput.value);
   const petId = encodeURIComponent((petIdInput.value.trim() || "emo-01"));
   const token = encodeURIComponent(tokenInput.value.trim());
   if (!base || !token) {
