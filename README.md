@@ -136,6 +136,8 @@ Current emotion classes:
 
 - `index.html` - Eye page
 - `controls.html` - Controls/actions page
+- `dashboard/` - Separate remote web dashboard app
+- `cloudflare-worker/` - Serverless WebSocket relay (Worker + Durable Object)
 - `styles.css` - Eye + controls-page styling
 - `app.js` - Brain, sensor manager, behavior engine, controls actions
 - `manifest.webmanifest` - PWA install config (fullscreen, rotation, icons)
@@ -143,6 +145,54 @@ Current emotion classes:
 - `icons/icon-192.svg` - PWA icon
 - `icons/icon-512.svg` - PWA icon
 - `README.md` - Project documentation
+
+## Remote Control (Cloudflare Serverless)
+
+This repo now supports a separate remote dashboard using Cloudflare Workers WebSocket relay.
+
+- Pet app connects as role `pet`.
+- Dashboard app connects as role `dashboard`.
+- Worker routes commands from dashboard -> pet.
+- Pet streams live state back to dashboard.
+
+### Step-by-step setup
+
+1. Install Wrangler:
+
+```bash
+npm install -g wrangler
+```
+
+2. Login:
+
+```bash
+wrangler login
+```
+
+3. Deploy worker from repo root:
+
+```bash
+cd cloudflare-worker
+wrangler secret put REMOTE_TOKEN
+wrangler deploy
+```
+
+4. Open controls page in pet app (`controls.html`) and set:
+- Worker URL: `wss://<your-worker-domain>/ws`
+- Pet ID: `emo-01` (or your own id)
+- Token: same value used in `REMOTE_TOKEN`
+- Tap `Save Remote`
+- Tap `Remote: On`
+
+5. Open remote dashboard:
+- `dashboard/index.html` (host it with your static files)
+- Fill same Worker URL, Pet ID, Token
+- Tap `Connect`
+
+### WebSocket endpoints
+
+- Pet: `/ws/pet/:petId?token=...`
+- Dashboard: `/ws/dashboard/:petId?token=...`
 
 ## Voice Commands
 

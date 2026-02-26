@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emo Remote Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="wrap">
+  <h1>Emo Remote Dashboard</h1>
+  <p id="connState">Disconnected</p>
+  <div class="row">
+    <input id="wsUrl" type="text" placeholder="wss://your-worker.workers.dev/ws">
+    <input id="petId" type="text" placeholder="emo-01">
+    <input id="token" type="password" placeholder="token">
+  </div>
+  <div class="row">
+    <button id="connectBtn" type="button">Connect</button>
+    <button id="disconnectBtn" type="button">Disconnect</button>
+    <button id="requestStateBtn" type="button">Request State</button>
+  </div>
+  <div class="row">
+    <button data-action="wake" type="button">Wake</button>
+    <button data-action="sleep" type="button">Sleep</button>
+    <button data-action="feed" type="button">Feed</button>
+    <button data-action="mic-toggle" type="button">Mic Toggle</button>
+    <button data-action="camera-toggle" type="button">Cam Toggle</button>
+  </div>
+  <div class="row">
+    <button data-mode="chill" type="button">Chill</button>
+    <button data-mode="focus" type="button">Focus</button>
+    <button data-mode="night" type="button">Night</button>
+  </div>
+  <pre id="stateOutput">{}</pre>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

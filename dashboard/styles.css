@@ -1,0 +1,50 @@
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #050510;
+  color: #d9f8ff;
+}
+
+.wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  background: rgba(6, 18, 30, 0.75);
+  border: 1px solid rgba(100, 230, 255, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+h1 {
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+input,
+button {
+  border-radius: 8px;
+  border: 1px solid #2f5469;
+  background: rgba(8, 20, 32, 0.9);
+  color: #d9f8ff;
+  padding: 8px 10px;
+}
+
+button {
+  cursor: pointer;
+}
+
+#stateOutput {
+  min-height: 280px;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid #2f5469;
+  border-radius: 8px;
+  padding: 10px;
+  overflow: auto;
+}

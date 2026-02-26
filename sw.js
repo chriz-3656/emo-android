@@ -1,8 +1,11 @@
-const CACHE_NAME = "emo-andro-v22";
+const CACHE_NAME = "emo-andro-v24";
 const APP_ASSETS = [
   "./",
   "index.html",
   "controls.html",
+  "dashboard/index.html",
+  "dashboard/app.js",
+  "dashboard/styles.css",
   "styles.css",
   "app.js",
   "manifest.webmanifest",

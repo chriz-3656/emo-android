@@ -41,6 +41,10 @@ const defaultState = {
   voiceEnabled: true,
   micEnabled: true,
   cameraEnabled: true,
+  remoteEnabled: false,
+  remoteWsUrl: "",
+  remotePetId: "emo-01",
+  remoteToken: "",
   carePoints: 0,
   notes: [],
   memory: [],
@@ -130,6 +134,12 @@ function runControlsPage() {
   const geoButton = document.getElementById("geoButton");
   const micToggle = document.getElementById("micToggle");
   const cameraToggle = document.getElementById("cameraToggle");
+  const remoteUrlInput = document.getElementById("remoteUrlInput");
+  const remotePetIdInput = document.getElementById("remotePetIdInput");
+  const remoteTokenInput = document.getElementById("remoteTokenInput");
+  const remoteSaveButton = document.getElementById("remoteSaveButton");
+  const remoteToggleButton = document.getElementById("remoteToggleButton");
+  const remoteStatusLine = document.getElementById("remoteStatusLine");
   const fullscreenButton = document.getElementById("fullscreenButton");
   const backButton = document.getElementById("backButton");
   const commandButton = document.getElementById("commandButton");
@@ -150,6 +160,11 @@ function runControlsPage() {
     geoButton.textContent = appState.weatherEnabled ? "Weather: On" : "Enable Weather";
     micToggle.textContent = `Mic: ${appState.micEnabled ? "On" : "Off"}`;
     cameraToggle.textContent = `Cam: ${appState.cameraEnabled ? "On" : "Off"}`;
+    remoteToggleButton.textContent = `Remote: ${appState.remoteEnabled ? "On" : "Off"}`;
+    remoteUrlInput.value = appState.remoteWsUrl || "";
+    remotePetIdInput.value = appState.remotePetId || "emo-01";
+    remoteTokenInput.value = appState.remoteToken || "";
+    remoteStatusLine.textContent = appState.remoteEnabled ? "Remote enabled on pet app." : "Remote disconnected.";
   }
 
   wakeButton.addEventListener("click", () => dispatchAction("wake"));
@@ -225,6 +240,20 @@ function runControlsPage() {
   });
   micToggle.addEventListener("click", () => dispatchAction("mic-toggle"));
   cameraToggle.addEventListener("click", () => dispatchAction("camera-toggle"));
+  remoteSaveButton.addEventListener("click", () => {
+    const wsUrl = remoteUrlInput.value.trim();
+    const petId = remotePetIdInput.value.trim() || "emo-01";
+    const token = remoteTokenInput.value.trim();
+    appState = loadState();
+    appState.remoteWsUrl = wsUrl;
+    appState.remotePetId = petId;
+    appState.remoteToken = token;
+    remember("Remote settings saved.");
+    saveState();
+    dispatchAction("remote-config", { wsUrl, petId, token });
+    refresh();
+  });
+  remoteToggleButton.addEventListener("click", () => dispatchAction("remote-toggle"));
   refresh();
 }
 
@@ -262,6 +291,9 @@ function runEyePage() {
   let voiceActive = false;
   let voiceRestartTimer = null;
   let lastGravityVector = { x: 0, y: 0, z: 0 };
+  let remoteSocket = null;
+  let remoteReconnectTimer = null;
+  let remoteReconnectMs = 1200;
 
   const transient = {
     motionShockUntil: 0,
@@ -1031,6 +1063,122 @@ function runEyePage() {
     new Notification(title, options);
   }
 
+  function getRemoteEndpoint() {
+    const wsBase = (appState.remoteWsUrl || "").trim().replace(/\/$/, "");
+    const petId = encodeURIComponent((appState.remotePetId || "emo-01").trim());
+    const token = encodeURIComponent((appState.remoteToken || "").trim());
+    if (!wsBase || !petId || !token) {
+      return null;
+    }
+    return `${wsBase}/pet/${petId}?token=${token}`;
+  }
+
+  function sendRemoteState(reason) {
+    if (!remoteSocket || remoteSocket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    const payload = {
+      type: "state",
+      role: "pet",
+      reason,
+      ts: Date.now(),
+      petId: appState.remotePetId || "emo-01",
+      data: {
+        system: {
+          mode: system.mode,
+          wakeLockActive: system.wakeLockActive
+        },
+        brain: {
+          emotion: brain.emotion,
+          energy: brain.energy,
+          curiosity: brain.curiosity,
+          socialNeed: brain.socialNeed,
+          sleeping: brain.sleeping,
+          batteryLow: brain.batteryLow,
+          environment: {
+            motionIntensity: brain.environment.motionIntensity,
+            loudness: brain.environment.loudness,
+            faceDetected: brain.environment.faceDetected,
+            networkOnline: brain.environment.networkOnline,
+            batteryLevel: brain.environment.batteryLevel
+          }
+        },
+        app: {
+          mode: appState.mode,
+          micEnabled: appState.micEnabled,
+          cameraEnabled: appState.cameraEnabled
+        }
+      }
+    };
+    remoteSocket.send(JSON.stringify(payload));
+  }
+
+  function closeRemoteSocket() {
+    clearTimeout(remoteReconnectTimer);
+    if (remoteSocket) {
+      remoteSocket.onopen = null;
+      remoteSocket.onclose = null;
+      remoteSocket.onmessage = null;
+      remoteSocket.onerror = null;
+      try {
+        remoteSocket.close();
+      } catch (_error) {}
+      remoteSocket = null;
+    }
+  }
+
+  function connectRemoteSocket() {
+    if (!appState.remoteEnabled) {
+      closeRemoteSocket();
+      return;
+    }
+    if (remoteSocket && (remoteSocket.readyState === WebSocket.OPEN || remoteSocket.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    const endpoint = getRemoteEndpoint();
+    if (!endpoint) {
+      return;
+    }
+    try {
+      remoteSocket = new WebSocket(endpoint);
+    } catch (_error) {
+      return;
+    }
+    remoteSocket.onopen = () => {
+      remoteReconnectMs = 1200;
+      sendRemoteState("connected");
+    };
+    remoteSocket.onmessage = (event) => {
+      let message = null;
+      try {
+        message = JSON.parse(event.data);
+      } catch (_error) {
+        return;
+      }
+      if (!message || typeof message !== "object") {
+        return;
+      }
+      if (message.type === "command") {
+        handleAction(message.action, message.payload || {});
+        sendRemoteState("command-applied");
+        return;
+      }
+      if (message.type === "request_state") {
+        sendRemoteState("state-requested");
+      }
+    };
+    remoteSocket.onclose = () => {
+      remoteSocket = null;
+      if (!appState.remoteEnabled) {
+        return;
+      }
+      clearTimeout(remoteReconnectTimer);
+      remoteReconnectTimer = setTimeout(connectRemoteSocket, remoteReconnectMs);
+      remoteReconnectMs = Math.min(12000, Math.floor(remoteReconnectMs * 1.6));
+    };
+    remoteSocket.onerror = () => {};
+  }
+
   function handleAction(action, payload) {
     if (action === "wake") {
       wake("controls");
@@ -1090,6 +1238,27 @@ function runEyePage() {
       }
       return;
     }
+    if (action === "remote-config") {
+      appState.remoteWsUrl = (payload?.wsUrl || "").trim();
+      appState.remotePetId = (payload?.petId || "emo-01").trim() || "emo-01";
+      appState.remoteToken = (payload?.token || "").trim();
+      saveState();
+      if (appState.remoteEnabled) {
+        closeRemoteSocket();
+        connectRemoteSocket();
+      }
+      return;
+    }
+    if (action === "remote-toggle") {
+      appState.remoteEnabled = !appState.remoteEnabled;
+      saveState();
+      if (appState.remoteEnabled) {
+        connectRemoteSocket();
+      } else {
+        closeRemoteSocket();
+      }
+      return;
+    }
     if (action === "command") {
       handleCommand(payload?.text?.toLowerCase() || "", "controls");
     }
@@ -1117,6 +1286,7 @@ function runEyePage() {
     processSensors();
     decideBehavior();
     renderState();
+    sendRemoteState("tick");
   }
 
   function handleFirstTouch() {
@@ -1160,6 +1330,7 @@ function runEyePage() {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopVoiceRecognition();
+      closeRemoteSocket();
       return;
     }
     if (system.permissionsGranted && !system.wakeLockActive) {
@@ -1167,6 +1338,9 @@ function runEyePage() {
     }
     if (appState.voiceEnabled) {
       startVoiceRecognition();
+    }
+    if (appState.remoteEnabled) {
+      connectRemoteSocket();
     }
   });
 
@@ -1182,6 +1356,11 @@ function runEyePage() {
   window.addEventListener("storage", (event) => {
     if (event.key === STORAGE_KEY) {
       appState = loadState();
+      if (appState.remoteEnabled) {
+        connectRemoteSocket();
+      } else {
+        closeRemoteSocket();
+      }
       return;
     }
     if (event.key === ACTION_KEY && event.newValue) {
@@ -1204,6 +1383,9 @@ function runEyePage() {
   }
 
   processUrlAction();
+  if (appState.remoteEnabled) {
+    connectRemoteSocket();
+  }
   renderState();
   requestAnimationFrame(motionFrame);
   decisionLoop = setInterval(masterLoop, 2000);

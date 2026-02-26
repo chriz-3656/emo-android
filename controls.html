@@ -32,6 +32,19 @@
     <input id="commandInput" type="text" placeholder="Command: sleep, wake, chill, battery...">
     <button id="commandButton" class="control-button" type="button">Run</button>
   </div>
+  <section class="remote-panel">
+    <h2>Remote Dashboard</h2>
+    <div class="quick-command">
+      <input id="remoteUrlInput" type="text" placeholder="Worker URL (wss://.../ws)">
+      <input id="remotePetIdInput" type="text" placeholder="Pet ID (emo-01)">
+    </div>
+    <div class="quick-command">
+      <input id="remoteTokenInput" type="password" placeholder="Remote token">
+      <button id="remoteSaveButton" class="control-button" type="button">Save Remote</button>
+      <button id="remoteToggleButton" class="control-button" type="button">Remote: Off</button>
+    </div>
+    <p id="remoteStatusLine">Remote disconnected.</p>
+  </section>
   <p id="moodLine">Mood: calm</p>
   <p id="memoryLine">No memory yet.</p>
   <ul id="notesList"></ul>
