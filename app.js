@@ -268,6 +268,8 @@ function runEyePage() {
     noisyScore: 0,
     silentScore: 0
   };
+  let scrubActive = false;
+  let scrubActiveUntil = 0;
   let motionShockActive = false;
   let motionShockResetAt = 0;
   let scrubCount = 0;
@@ -610,12 +612,14 @@ function runEyePage() {
 
   function processSensors() {
     const now = Date.now();
-    if (brain.environment.motionIntensity > 18) {
+    if (scrubActive && Date.now() < scrubActiveUntil) {
+      brain.environment.motionIntensity = 0;
+    } else if (brain.environment.motionIntensity > 18) {
       motionShockActive = true;
       transient.motionShockUntil = now + 1200;
       motionShockResetAt = now + 2200;
     }
-    if (brain.environment.motionIntensity >= 6 && brain.environment.motionIntensity <= 14) {
+    if (!scrubActive && brain.environment.motionIntensity >= 6 && brain.environment.motionIntensity <= 14) {
       transient.alertUntil = now + 1400;
     }
     if (transient.stillStartAt && now - transient.stillStartAt > INACTIVITY_SLEEP_MS) {
@@ -1083,6 +1087,8 @@ function runEyePage() {
       wake("touch move");
       return;
     }
+    scrubActive = true;
+    scrubActiveUntil = Date.now() + 1200;
     scrubCount += 1;
     clearTimeout(scrubTimer);
     scrubTimer = setTimeout(() => {
