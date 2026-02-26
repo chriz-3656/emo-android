@@ -1,5 +1,6 @@
 const STORAGE_KEY = "emo-andro-state-v5";
 const ACTION_KEY = "emo-andro-action-v1";
+const INACTIVITY_SLEEP_MS = 20 * 60 * 1000;
 
 const system = {
   mode: "ACTIVE",
@@ -589,6 +590,9 @@ function runEyePage() {
     if (brain.energy <= 25) {
       brain.sleeping = true;
     }
+    if (idleMs > INACTIVITY_SLEEP_MS) {
+      brain.sleeping = true;
+    }
     if (brain.sleeping) {
       setSystemMode("SLEEP");
       return;
@@ -608,7 +612,7 @@ function runEyePage() {
     if (brain.environment.motionIntensity >= 6 && brain.environment.motionIntensity <= 14) {
       transient.alertUntil = now + 1400;
     }
-    if (transient.stillStartAt && now - transient.stillStartAt > 20000) {
+    if (transient.stillStartAt && now - transient.stillStartAt > INACTIVITY_SLEEP_MS) {
       brain.sleeping = true;
     }
 
