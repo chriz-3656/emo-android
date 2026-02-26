@@ -51,16 +51,16 @@ const defaultState = {
 };
 
 const modeProfiles = {
-  chill: { moveMin: 12, moveMax: 34 },
-  focus: { moveMin: 5, moveMax: 18 },
-  night: { moveMin: 2, moveMax: 10 }
+  chill: { moveMin: 14, moveMax: 42 },
+  focus: { moveMin: 6, moveMax: 24 },
+  night: { moveMin: 2, moveMax: 12 }
 };
 
 const emotionClassByBrain = {
   neutral: "emotion-neutral",
   sleepy: "emotion-sleepy",
   wide: "emotion-wide",
-  dizzy: "emotion-dizzy",
+  dizzy: "emotion-dizzy-line",
   lowBattery: "emotion-lowBattery",
   listening: "emotion-listening",
   speaking: "emotion-speaking",
@@ -545,6 +545,7 @@ function runEyePage() {
     transient.motionShockUntil = 0;
     transient.wakeGlowUntil = Date.now() + 1800;
     wakeDoubleBlinkCount = 2;
+    nextBlinkAt = Date.now() + 80;
     startWakeScan();
     if (wasSleeping) {
       vibrate([100, 50, 100]);
@@ -760,7 +761,10 @@ function runEyePage() {
     const z = document.createElement("span");
     z.className = "zzz";
     z.textContent = "Z";
-    z.style.left = `${44 + Math.random() * 14}%`;
+    const edgeBand = Math.random() < 0.5
+      ? 12 + Math.random() * 10
+      : 78 + Math.random() * 10;
+    z.style.left = `${edgeBand}%`;
     sleepContainer.appendChild(z);
     z.addEventListener("animationend", () => z.remove(), { once: true });
   }
@@ -783,7 +787,7 @@ function runEyePage() {
     }
     const maxMove = getMaxMoveX();
     targetX = (Math.random() - 0.5) * maxMove * 2;
-    nextLookAt = now + randomInRange(8000, 15000);
+    nextLookAt = now + randomInRange(3500, 8000);
   }
 
   function sampleScanX(nowPerf) {
@@ -862,6 +866,10 @@ function runEyePage() {
       targetX = scanX;
     }
 
+    const maxMove = getMaxMoveX();
+    const tiltOffset = clamp((brain.environment.tiltY || 0) / 38, -1, 1) * (maxMove * 0.9);
+    const targetWithTilt = targetX + tiltOffset;
+
     if (brain.sleeping) {
       targetX = 0;
       eyes.style.opacity = "0.88";
@@ -871,7 +879,7 @@ function runEyePage() {
       eyes.style.setProperty("--voice-glow", brain.environment.loudSound ? "95px" : "60px");
     }
 
-    currentX += (targetX - currentX) * 0.08;
+    currentX += (targetWithTilt - currentX) * 0.12;
     const tiltSkew = clamp((brain.environment.tiltY || 0) / 8, -9, 9);
     currentSkew += (tiltSkew - currentSkew) * 0.12;
     eyes.style.transform = `translateX(${currentX.toFixed(2)}px) skewX(${currentSkew.toFixed(2)}deg)`;
