@@ -252,6 +252,7 @@ function runEyePage() {
   let voiceRecognition = null;
   let voiceActive = false;
   let voiceRestartTimer = null;
+  let lastGravityVector = { x: 0, y: 0, z: 0 };
 
   const transient = {
     motionShockUntil: 0,
@@ -379,20 +380,30 @@ function runEyePage() {
 
   function setupMotionListener() {
     window.addEventListener("devicemotion", (event) => {
-      const acc = event.accelerationIncludingGravity;
-      if (!acc) {
+      const linear = event.acceleration;
+      const gravity = event.accelerationIncludingGravity;
+      if (!linear && !gravity) {
         return;
       }
-      const intensity = Math.abs(acc.x || 0) + Math.abs(acc.y || 0) + Math.abs(acc.z || 0);
+      let intensity = 0;
+      if (linear && linear.x != null) {
+        intensity = Math.abs(linear.x || 0) + Math.abs(linear.y || 0) + Math.abs(linear.z || 0);
+      } else {
+        const gx = gravity?.x || 0;
+        const gy = gravity?.y || 0;
+        const gz = gravity?.z || 0;
+        intensity = Math.abs(gx - lastGravityVector.x) + Math.abs(gy - lastGravityVector.y) + Math.abs(gz - lastGravityVector.z);
+        lastGravityVector = { x: gx, y: gy, z: gz };
+      }
       brain.environment.motionIntensity = intensity;
-      if (intensity > 30) {
+      if (intensity > 18) {
         transient.motionShockUntil = Date.now() + 2200;
         vibrate([100, 50, 100]);
         wake("motion shock");
-      } else if (intensity >= 10 && intensity <= 20) {
+      } else if (intensity >= 6 && intensity <= 14) {
         transient.alertUntil = Date.now() + 2000;
       }
-      if (intensity < 2) {
+      if (intensity < 1) {
         if (!transient.stillStartAt) {
           transient.stillStartAt = Date.now();
         }
@@ -590,10 +601,10 @@ function runEyePage() {
 
   function processSensors() {
     const now = Date.now();
-    if (brain.environment.motionIntensity > 30) {
+    if (brain.environment.motionIntensity > 18) {
       transient.motionShockUntil = now + 1800;
     }
-    if (brain.environment.motionIntensity >= 10 && brain.environment.motionIntensity <= 20) {
+    if (brain.environment.motionIntensity >= 6 && brain.environment.motionIntensity <= 14) {
       transient.alertUntil = now + 1400;
     }
     if (transient.stillStartAt && now - transient.stillStartAt > 20000) {
