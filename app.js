@@ -658,6 +658,9 @@ function runEyePage() {
 
     // Decay motion signal so shake/dizzy states do not get stuck.
     brain.environment.motionIntensity = Math.max(0, brain.environment.motionIntensity * 0.68);
+    if (now > transient.motionShockUntil && brain.environment.motionIntensity < 2) {
+      transient.motionShockUntil = 0;
+    }
   }
 
   function decideBehavior() {

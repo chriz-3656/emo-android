@@ -1,4 +1,4 @@
-const CACHE_NAME = "emo-andro-v17";
+const CACHE_NAME = "emo-andro-v18";
 const APP_ASSETS = [
   "./",
   "index.html",
