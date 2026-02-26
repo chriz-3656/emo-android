@@ -75,7 +75,17 @@ const emotionClassByBrain = {
   confused: "emotion-spiral",
   annoyed: "emotion-angry",
   curious: "emotion-wide",
-  happy: "emotion-happy"
+  happy: "emotion-happy",
+  dead: "emotion-dead",
+  yawn: "emotion-yawn",
+  "arc-up": "emotion-arc-up",
+  evil: "emotion-evil",
+  tilted: "emotion-tilted",
+  "closed-smile": "emotion-closed-smile",
+  squeeze: "emotion-squeeze",
+  tiny: "emotion-tiny",
+  love: "emotion-love",
+  wink: "emotion-wink"
 };
 
 let appState = loadState();
