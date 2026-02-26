@@ -39,6 +39,8 @@ const defaultState = {
   notificationsEnabled: false,
   weatherEnabled: false,
   voiceEnabled: true,
+  micEnabled: true,
+  cameraEnabled: true,
   carePoints: 0,
   notes: [],
   memory: [],
@@ -126,6 +128,8 @@ function runControlsPage() {
   const voiceButton = document.getElementById("voiceButton");
   const notifyButton = document.getElementById("notifyButton");
   const geoButton = document.getElementById("geoButton");
+  const micToggle = document.getElementById("micToggle");
+  const cameraToggle = document.getElementById("cameraToggle");
   const fullscreenButton = document.getElementById("fullscreenButton");
   const backButton = document.getElementById("backButton");
   const commandButton = document.getElementById("commandButton");
@@ -144,6 +148,8 @@ function runControlsPage() {
     voiceButton.textContent = `Voice: ${appState.voiceEnabled ? "On" : "Off"}`;
     notifyButton.textContent = appState.notificationsEnabled ? "Notify: On" : "Enable Notify";
     geoButton.textContent = appState.weatherEnabled ? "Weather: On" : "Enable Weather";
+    micToggle.textContent = `Mic: ${appState.micEnabled ? "On" : "Off"}`;
+    cameraToggle.textContent = `Cam: ${appState.cameraEnabled ? "On" : "Off"}`;
   }
 
   wakeButton.addEventListener("click", () => dispatchAction("wake"));
@@ -217,6 +223,8 @@ function runControlsPage() {
       refresh();
     }
   });
+  micToggle.addEventListener("click", () => dispatchAction("mic-toggle"));
+  cameraToggle.addEventListener("click", () => dispatchAction("camera-toggle"));
   refresh();
 }
 
@@ -329,6 +337,21 @@ function runEyePage() {
     }
   }
 
+  function stopMicrophone() {
+    if (analyser) {
+      analyser.disconnect();
+      analyser = null;
+    }
+    if (audioContext) {
+      audioContext.close().catch(() => {});
+      audioContext = null;
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach((track) => track.stop());
+      audioStream = null;
+    }
+  }
+
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return false;
@@ -354,6 +377,16 @@ function runEyePage() {
     } catch (_error) {
       return false;
     }
+  }
+
+  function stopCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      cameraStream = null;
+    }
+    cameraVideo = null;
+    cameraCtx = null;
+    cameraCanvas = null;
   }
 
   async function enableWakeLock() {
@@ -486,8 +519,12 @@ function runEyePage() {
     }
     const motionGranted = await requestMotionPermission();
     const orientationGranted = await requestOrientationPermission();
-    await startMicrophone();
-    await startCamera();
+    if (appState.micEnabled) {
+      await startMicrophone();
+    }
+    if (appState.cameraEnabled) {
+      await startCamera();
+    }
     await enableWakeLock();
     await requestFullscreen();
     if (motionGranted) {
@@ -1035,6 +1072,28 @@ function runEyePage() {
         startVoiceRecognition();
       } else {
         stopVoiceRecognition();
+      }
+      return;
+    }
+    if (action === "mic-toggle") {
+      appState.micEnabled = !appState.micEnabled;
+      saveState();
+      remember(`Mic ${appState.micEnabled ? "enabled" : "disabled"}.`);
+      if (appState.micEnabled) {
+        startMicrophone();
+      } else {
+        stopMicrophone();
+      }
+      return;
+    }
+    if (action === "camera-toggle") {
+      appState.cameraEnabled = !appState.cameraEnabled;
+      saveState();
+      remember(`Camera ${appState.cameraEnabled ? "enabled" : "disabled"}.`);
+      if (appState.cameraEnabled) {
+        startCamera();
+      } else {
+        stopCamera();
       }
       return;
     }

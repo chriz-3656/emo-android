@@ -182,6 +182,7 @@ Open: `http://localhost:8080`
 3. Tap `Install app` or `Add to Home screen`.
 4. Launch from the home screen icon.
 5. Use controls page for settings/actions.
+6. Use the new Mic/Cam toggles on the controls page to pause sensors when you need to save heat/battery.
 
 ## Update Flow (Important)
 
