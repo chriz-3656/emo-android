@@ -891,7 +891,7 @@ function runEyePage() {
 
     const maxMove = getMaxMoveX();
     const tiltY = brain.environment.tiltY || 0;
-    const tiltNormalized = Math.abs(tiltY) < 2 ? 0 : clamp(tiltY / 45, -1, 1);
+    const tiltNormalized = Math.abs(tiltY) < 3 ? 0 : clamp(tiltY / 45, -1, 1);
     const tiltOffset = tiltNormalized * (maxMove * 0.45);
     const targetWithTilt = clamp(targetX + tiltOffset, -maxMove * 1.15, maxMove * 1.15);
 
