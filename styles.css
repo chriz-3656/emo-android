@@ -99,6 +99,65 @@ body {
   transform: rotate(8deg);
 }
 
+.emotion-alert .eye {
+  width: 120px;
+  height: 72px;
+  border-radius: 18px;
+  border: 4px solid var(--eye-color);
+  background: transparent;
+}
+
+.emotion-alert .eye::before {
+  content: "!";
+  font-size: 52px;
+  color: var(--eye-color);
+}
+
+.emotion-annoyed .eye {
+  width: 118px;
+  height: 66px;
+  border-radius: 18px;
+  border: 4px solid var(--eye-color);
+  background: transparent;
+}
+
+.emotion-annoyed .eye::before {
+  content: "-";
+  font-size: 48px;
+  color: var(--eye-color);
+}
+
+.emotion-confused .eye {
+  background: transparent;
+  border: 4px solid var(--eye-color);
+  border-radius: 28px;
+}
+
+.emotion-confused .eye::before {
+  content: "?";
+  font-size: 46px;
+  color: var(--eye-color);
+}
+
+.emotion-curious .eye {
+  width: 140px;
+  height: 88px;
+  border-radius: 26px;
+  border: 4px solid var(--eye-color);
+}
+
+.emotion-curious .eye::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  left: 30px;
+  top: 20px;
+  background: var(--eye-color);
+  box-shadow: 70px 0 0 var(--eye-color);
+}
+
 .emotion-yawn .eye:first-child {
   width: 136px;
   height: 56px;
