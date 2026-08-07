@@ -837,7 +837,12 @@ function runEyePage() {
   }
 
   function renderState() {
-    const mapped = emotionClassByBrain[brain.emotion] || "emotion-neutral";
+    let mapped = "emotion-neutral";
+    if (brain.emotion.startsWith("emotion-")) {
+      mapped = brain.emotion;
+    } else {
+      mapped = emotionClassByBrain[brain.emotion] || "emotion-neutral";
+    }
     eyes.classList.remove(...allEmotionClasses, "blink", "glow-pulse", "shake");
     eyes.classList.add(mapped);
     if (blinkActive) {
