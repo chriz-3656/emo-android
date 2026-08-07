@@ -275,7 +275,7 @@ function runControlsPage() {
 }
 
 function runEyePage() {
-  const eyes = document.getElementById("eyes");
+  const eyes = document.getElementById("face") || document.getElementById("eyes");
   const sleepContainer = document.getElementById("sleepContainer");
   const navControlsButton = document.getElementById("navControlsButton");
   if (!eyes || !sleepContainer || !navControlsButton) {

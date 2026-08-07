@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  background: #050510;
+  background: radial-gradient(circle at 50% 50%, #111827 0%, #03050a 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -8,32 +8,169 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  font-family: Arial, sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 .eye-page {
   touch-action: manipulation;
 }
 
+.face {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.head-animator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  animation: floatBreathing 3s ease-in-out infinite;
+}
+
+.emotion-curious .head-animator,
+.emotion-side-eye .head-animator {
+  animation: headTiltRight 1.5s ease-in-out infinite;
+}
+
+.emotion-listening .head-animator {
+  animation: headTiltLeftRight 2s ease-in-out infinite;
+}
+
+.emotion-happy .head-animator,
+.emotion-love .head-animator {
+  animation: headBounce 0.8s ease-in-out infinite;
+}
+
+.emotion-angry .head-animator {
+  animation: headShake 0.3s ease-in-out infinite;
+}
+
+.emotion-dizzy .head-animator,
+.emotion-spiral .head-animator {
+  animation: headWobble 1s linear infinite;
+}
+
+@keyframes headTiltRight {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  50% { transform: rotate(8deg) translateY(-5px); }
+}
+
+@keyframes headTiltLeftRight {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-5deg) translateY(-3px); }
+  75% { transform: rotate(5deg) translateY(-3px); }
+}
+
+@keyframes headBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes headShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes headWobble {
+  0% { transform: rotate(0deg) translateX(0); }
+  25% { transform: rotate(5deg) translateX(5px); }
+  50% { transform: rotate(0deg) translateX(0); }
+  75% { transform: rotate(-5deg) translateX(-5px); }
+  100% { transform: rotate(0deg) translateX(0); }
+}
+
 .eyes {
   display: flex;
   gap: 68px;
-  transition: all 0.2s ease;
+}
+
+.mouth {
+  --mouth-color: #54fff3;
+  width: 60px;
+  height: 8px;
+  background: var(--mouth-color);
+  border-radius: 8px;
+  box-shadow: 0 0 15px var(--mouth-color);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-top: 10px;
+}
+
+.emotion-happy .mouth {
+  width: 70px;
+  height: 35px;
+  border-radius: 0 0 50px 50px;
+}
+
+.emotion-love .mouth {
+  width: 50px;
+  height: 25px;
+  border-radius: 0 0 50px 50px;
+}
+
+.emotion-speaking .mouth {
+  width: 40px;
+  height: 30px;
+  border-radius: 50px;
+  animation: mouthTalk 0.15s infinite alternate;
+}
+
+.emotion-angry .mouth {
+  width: 50px;
+  height: 8px;
+  transform: translateY(-10px);
+}
+
+.emotion-dizzy-line .mouth,
+.emotion-spiral .mouth {
+  width: 30px;
+  height: 10px;
+  border-radius: 50px;
+}
+
+.emotion-yawn .mouth {
+  width: 50px;
+  height: 60px;
+  border-radius: 50%;
+}
+
+.emotion-wide .mouth {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.emotion-dead .mouth {
+  width: 40px;
+  height: 12px;
+}
+
+@keyframes mouthTalk {
+  0% { height: 10px; width: 45px; }
+  100% { height: 35px; width: 35px; }
 }
 
 .eye {
   --eye-color: #54fff3;
-  --voice-glow: 60px;
+  --voice-glow: 70px;
   width: 142px;
   height: 142px;
   background: var(--eye-color);
-  border-radius: 24px;
+  border-radius: 28px;
   box-shadow: 0 0 var(--voice-glow) var(--eye-color);
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@keyframes floatBreathing {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.02); }
 }
 
 .eye::before,
@@ -100,11 +237,15 @@ body {
 }
 
 .emotion-alert .eye {
+  --eye-color: #ff3333;
   width: 120px;
   height: 72px;
   border-radius: 18px;
   border: 4px solid var(--eye-color);
   background: transparent;
+}
+.emotion-alert .mouth {
+  --mouth-color: #ff3333;
 }
 
 .emotion-alert .eye::before {
@@ -321,6 +462,9 @@ body {
 .emotion-lowBattery .eye {
   --eye-color: orange;
 }
+.emotion-lowBattery .mouth {
+  --mouth-color: orange;
+}
 
 .shake {
   animation: shakeAnim 0.42s ease;
@@ -342,15 +486,26 @@ body {
 .lowBattery .eye {
   --eye-color: orange;
 }
+.lowBattery .mouth {
+  --mouth-color: orange;
+}
 
 .control-button {
-  padding: 8px 12px;
-  border: 1px solid #00aaff;
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 170, 255, 0.5);
   border-radius: 999px;
   background: rgba(0, 170, 255, 0.15);
   color: #dbf8ff;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+.control-button:hover {
+  background: rgba(0, 170, 255, 0.25);
+}
+.control-button:active {
+  transform: translateY(1px);
 }
 
 .control-button.hidden {
@@ -426,10 +581,10 @@ body {
   width: min(900px, 100%);
   margin: 0 auto;
   color: #d7f6ff;
-  background: rgba(3, 10, 22, 0.7);
-  border: 1px solid rgba(84, 255, 243, 0.25);
-  border-radius: 16px;
-  padding: 14px;
+  background: rgba(3, 10, 22, 0.85);
+  border: 1px solid rgba(84, 255, 243, 0.3);
+  border-radius: 20px;
+  padding: 20px;
 }
 
 .controls-layout h1 {
